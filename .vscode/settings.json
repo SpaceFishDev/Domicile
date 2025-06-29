@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "bootloader_structs.h": "c",
+        "basic_renderer.h": "c",
+        "stdbool.h": "c",
+        "typdef.h": "c",
+        "string.h": "c",
+        "elf.h": "c",
+        "efi_memory.h": "c",
+        "paging.h": "c",
+        "pagemapindexer.h": "c",
+        "pagetables.h": "c",
+        "kernel_util.h": "c",
+        "stdint.h": "c"
+    }
+}
