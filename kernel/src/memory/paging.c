@@ -14,7 +14,7 @@ uint64_t get_memory_size(mem_info_t mem_info)
     }
 
     uint64_t no_entries = mem_info.map_size / mem_info.map_descriptor_size;
-    for (int i = 0; i < no_entries; ++i)
+    for (uint64_t i = 0; i < no_entries; ++i)
     {
         efi_memory_descriptor_t *desc = (efi_memory_descriptor_t *)((uint64_t)mem_info.map + (i * mem_info.map_descriptor_size));
         memory_size_bytes += desc->no_pages * 4096;
@@ -54,7 +54,7 @@ void read_efi_memory_map(page_frame_allocator_t *allocator, mem_info_t mem_info)
 
     void *largest_free_mem_seg = 0;
     size_t largest_free_mem_seg_size = 0;
-    for (int i = 0; i < memory_map_entries; ++i)
+    for (uint64_t i = 0; i < memory_map_entries; ++i)
     {
         efi_memory_descriptor_t *desc = (efi_memory_descriptor_t *)((uint64_t)mem_info.map + (i * mem_info.map_descriptor_size));
         if (desc->type == 7)
@@ -71,7 +71,7 @@ void read_efi_memory_map(page_frame_allocator_t *allocator, mem_info_t mem_info)
     uint64_t bitmap_size = ((mem_size / 4096) / 8) + 1;
     pf_allocator_init_bitmap(allocator, bitmap_size, largest_free_mem_seg);
     lock_pages(allocator, allocator->page_bitmap.buffer, allocator->page_bitmap.size / 4096 + 1);
-    for (int i = 0; i < memory_map_entries; ++i)
+    for (uint64_t i = 0; i < memory_map_entries; ++i)
     {
         efi_memory_descriptor_t *desc = (efi_memory_descriptor_t *)((uint64_t)mem_info.map + (i * mem_info.map_descriptor_size));
         if (desc->type != 7)
@@ -85,14 +85,15 @@ void pf_allocator_init_bitmap(page_frame_allocator_t *allocator, size_t bitmap_s
 {
     allocator->page_bitmap.size = bitmap_size;
     allocator->page_bitmap.buffer = (uint8_t *)buffer_addr;
-    for (int i = 0; i < bitmap_size; ++i)
+    for (size_t i = 0; i < bitmap_size; ++i)
     {
         *((uint8_t *)(allocator->page_bitmap.buffer + i)) = 0;
     }
 }
-
+uint64_t page_bitmap_idx = 0;
 void free_page(page_frame_allocator_t *allocator, void *addr)
 {
+
     uint64_t index = (uint64_t)addr / 4096;
     if (bitmap_get(&allocator->page_bitmap, index) == false)
     {
@@ -102,6 +103,10 @@ void free_page(page_frame_allocator_t *allocator, void *addr)
     {
         free_memory += 4096;
         used_memory -= 4096;
+        if (index < page_bitmap_idx)
+        {
+            page_bitmap_idx = index;
+        }
     }
 }
 void lock_page(page_frame_allocator_t *allocator, void *addr)
@@ -146,14 +151,14 @@ void unreserve_page(page_frame_allocator_t *allocator, void *addr)
 
 void free_pages(page_frame_allocator_t *allocator, void *addr, size_t page_count)
 {
-    for (int i = 0; i < page_count; ++i)
+    for (size_t i = 0; i < page_count; ++i)
     {
         free_page(allocator, ((void *)((uint64_t)addr + (i * 4096))));
     }
 }
 void lock_pages(page_frame_allocator_t *allocator, void *addr, size_t page_count)
 {
-    for (int i = 0; i < page_count; ++i)
+    for (size_t i = 0; i < page_count; ++i)
     {
         lock_page(allocator, ((void *)((uint64_t)addr + (i * 4096))));
     }
@@ -161,7 +166,7 @@ void lock_pages(page_frame_allocator_t *allocator, void *addr, size_t page_count
 
 void unreserve_pages(page_frame_allocator_t *allocator, void *addr, size_t page_count)
 {
-    for (int i = 0; i < page_count; ++i)
+    for (size_t i = 0; i < page_count; ++i)
     {
         unreserve_page(allocator, ((void *)((uint64_t)addr + (i * 4096))));
     }
@@ -169,7 +174,7 @@ void unreserve_pages(page_frame_allocator_t *allocator, void *addr, size_t page_
 
 void reserve_pages(page_frame_allocator_t *allocator, void *addr, size_t page_count)
 {
-    for (int i = 0; i < page_count; ++i)
+    for (size_t i = 0; i < page_count; ++i)
     {
         reserve_page(allocator, ((void *)((uint64_t)addr + (i * 4096))));
     }
@@ -177,12 +182,12 @@ void reserve_pages(page_frame_allocator_t *allocator, void *addr, size_t page_co
 
 void *request_page(page_frame_allocator_t *allocator)
 {
-    for (uint64_t idx = 0; idx < allocator->page_bitmap.size * 8; ++idx)
+    for (; page_bitmap_idx < allocator->page_bitmap.size * 8; ++page_bitmap_idx)
     {
-        if (!bitmap_get(&allocator->page_bitmap, idx))
+        if (!bitmap_get(&allocator->page_bitmap, page_bitmap_idx))
         {
-            lock_page(allocator, (void *)(idx * 4096));
-            return (void *)(idx * 4096);
+            lock_page(allocator, (void *)(page_bitmap_idx * 4096));
+            return (void *)(page_bitmap_idx * 4096);
         }
     }
     return (void *)0;

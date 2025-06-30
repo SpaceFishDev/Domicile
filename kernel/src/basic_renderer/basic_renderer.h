@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "../utils/typdef.h"
+#include "../utils/string.h"
 
 typedef struct
 {
@@ -24,6 +25,9 @@ typedef struct
 void framebuffer_put_pixel(frame_buffer_t *frame_buffer, int x, int y, uint8_t r, uint8_t g, uint8_t b);
 void draw_char(frame_buffer_t *frame_buffer, psf1_font_t *font, unsigned int color, char chr, unsigned int _x, unsigned int _y);
 void print_str(basic_renderer_t *renderer, char *str, uint32_t color);
-void clear_screen(basic_renderer_t *renderer);
+void clear_screen(basic_renderer_t *renderer, uint8_t r, uint8_t g, uint8_t b);
+int printf(char *fmt, ...);
+
+extern basic_renderer_t *global_basic_renderer;
 
 #endif

@@ -1,4 +1,7 @@
 #include "kernel_util.h"
+#include "../gdt/gdt.h"
+#include "../interrupts/idt.h"
+#include "../interrupts/interrupts.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)
@@ -31,8 +34,50 @@ void prepare_memory(boot_info_t *boot_info)
     asm("mov %0, %%cr3" ::"r"(pml4));
 }
 
+idtr_t idtr;
+void prepare_interrupts()
+{
+    idtr.limit = 0x0FFF;
+    idtr.offset = (uint64_t)request_page(&global_allocator);
+
+    idt_desc_entry_t *int_page_fault = (idt_desc_entry_t *)(idtr.offset + 0xE * sizeof(idt_desc_entry_t));
+    set_offset(int_page_fault, (uint64_t)page_fault_handler);
+    int_page_fault->type_attr = IDT_TA_InterruptGate;
+    int_page_fault->selector = 0x08;
+
+    idt_desc_entry_t *int_double_fault = (idt_desc_entry_t *)(idtr.offset + 0x8 * sizeof(idt_desc_entry_t));
+    set_offset(int_double_fault, (uint64_t)double_fault_handler);
+    int_double_fault->type_attr = IDT_TA_InterruptGate;
+    int_double_fault->selector = 0x08;
+
+    idt_desc_entry_t *int_gp_fault = (idt_desc_entry_t *)(idtr.offset + 0xD * sizeof(idt_desc_entry_t));
+    set_offset(int_gp_fault, (uint64_t)general_protection_handler);
+    int_gp_fault->type_attr = IDT_TA_InterruptGate;
+    int_gp_fault->selector = 0x08;
+
+    idt_desc_entry_t *int_keyboard_handler = (idt_desc_entry_t *)(idtr.offset + 0x21 * sizeof(idt_desc_entry_t));
+    set_offset(int_keyboard_handler, (uint64_t)ps2_keyboard_handler);
+    int_keyboard_handler->type_attr = IDT_TA_InterruptGate;
+    int_keyboard_handler->selector = 0x08;
+
+    asm("lidt %0" ::"m"(idtr));
+
+    remap_pic();
+    outb(PIC1_DATA, 0b11111101);
+    outb(PIC2_DATA, 0b11111111);
+
+    asm("sti");
+}
+
 void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
 {
+    gdt_descriptor_t gdt_descriptor;
+    gdt_descriptor.size = sizeof(gdt_t) - 1;
+    gdt_descriptor.offset = (uint64_t)&default_gdt;
+    load_gdt(&gdt_descriptor);
+
     prepare_memory(boot_info);
     kernel_info->page_table_manager = &page_table_manager;
+
+    prepare_interrupts();
 }

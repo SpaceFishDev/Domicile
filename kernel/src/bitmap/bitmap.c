@@ -1,6 +1,6 @@
 #include "bitmap.h"
 
-bool bitmap_get(bitmap_t *bitmap, int idx)
+bool bitmap_get(bitmap_t *bitmap, size_t idx)
 {
     if (idx >= bitmap->size * 8)
     {
@@ -12,7 +12,7 @@ bool bitmap_get(bitmap_t *bitmap, int idx)
     return (bitmap->buffer[byte_index] & bit_indexer) != 0;
 }
 
-bool bitmap_set(bitmap_t *bitmap, int idx, bool value)
+bool bitmap_set(bitmap_t *bitmap, size_t idx, bool value)
 {
     if (idx >= bitmap->size * 8)
     {

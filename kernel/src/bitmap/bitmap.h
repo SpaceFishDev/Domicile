@@ -10,7 +10,7 @@ typedef struct
     uint8_t *buffer;
 } bitmap_t;
 
-bool bitmap_get(bitmap_t *bitmap, int idx);
-bool bitmap_set(bitmap_t *bitmap, int idx, bool value);
+bool bitmap_get(bitmap_t *bitmap, size_t idx);
+bool bitmap_set(bitmap_t *bitmap, size_t idx, bool value);
 
 #endif

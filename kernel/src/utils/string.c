@@ -146,3 +146,57 @@ void memset(void *start, uint8_t value, uint64_t num)
         *(uint8_t *)((uint64_t)start + i) = value;
     }
 }
+int vsprintf(char *out, char *fmt, va_list args)
+{
+    char *out_ptr = out;
+    for (char *p = fmt; *p; ++p)
+    {
+        if (*p != '%')
+        {
+            *out_ptr = *p;
+            ++out_ptr;
+        }
+        else
+        {
+            ++p;
+            switch (*p)
+            {
+            case 'd':
+            {
+                int value = va_arg(args, int);
+                char buf[32];
+                itoa(value, buf);
+                for (char *b = buf; *b; b++)
+                {
+                    *out_ptr = *b;
+                    ++out_ptr;
+                    ++b;
+                }
+            }
+            break;
+            case 's':
+            {
+                char *str = va_arg(args, char *);
+                while (*str)
+                {
+                    *out_ptr = *str;
+                    ++out_ptr;
+                    ++str;
+                }
+            }
+            break;
+            }
+        }
+    }
+    *out_ptr = 0;
+    return (int)(out_ptr - out);
+}
+
+int sprintf(char *out, char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int written = vsprintf(out, fmt, args);
+    va_end(args);
+    return written;
+}
