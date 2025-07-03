@@ -2,6 +2,7 @@
 #include "../gdt/gdt.h"
 #include "../interrupts/idt.h"
 #include "../interrupts/interrupts.h"
+#include "../ps2/keyboard.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)
@@ -69,15 +70,20 @@ void prepare_interrupts()
     asm("sti");
 }
 
+basic_renderer_t *global_basic_renderer;
+basic_renderer_t renderer;
+
 void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
 {
     gdt_descriptor_t gdt_descriptor;
     gdt_descriptor.size = sizeof(gdt_t) - 1;
     gdt_descriptor.offset = (uint64_t)&default_gdt;
     load_gdt(&gdt_descriptor);
-
     prepare_memory(boot_info);
     kernel_info->page_table_manager = &page_table_manager;
-
+    key_event_t *buffer = (key_event_t *)request_page(&global_allocator);
+    init_keyboard_handler(&global_keyboard_handler, buffer, 0x1000 / sizeof(key_event_t));
     prepare_interrupts();
+    renderer = (basic_renderer_t){point(40, 40), boot_info->frame_buffer, boot_info->font};
+    global_basic_renderer = &renderer;
 }

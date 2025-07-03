@@ -185,6 +185,13 @@ int vsprintf(char *out, char *fmt, va_list args)
                 }
             }
             break;
+            case 'c':
+            {
+                char ch = (char)va_arg(args, int);
+                *out_ptr = ch;
+                ++out_ptr;
+            }
+            break;
             }
         }
     }

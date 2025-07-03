@@ -1,5 +1,6 @@
 #include "interrupts.h"
 #include "panic.h"
+#include "../ps2/keyboard.h"
 
 __attribute__((interrupt)) void page_fault_handler(struct interrupt_frame *interrupt_frame)
 {
@@ -22,8 +23,8 @@ __attribute__((interrupt)) void general_protection_handler(struct interrupt_fram
 
 __attribute__((interrupt)) void ps2_keyboard_handler(struct interrupt_frame *interrupt_frame)
 {
-    printf("Keypress!\n");
     uint8_t scan_code = inb(0x60);
+    handle_key(&global_keyboard_handler, scan_code);
     pic_end_master();
 }
 
