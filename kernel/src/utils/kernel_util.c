@@ -36,30 +36,25 @@ void prepare_memory(boot_info_t *boot_info)
 }
 
 idtr_t idtr;
+
+void set_idt_gate(void *handler, uint8_t entry_offset, uint8_t type_attr, uint8_t selector)
+{
+    idt_desc_entry_t *interrupt = (idt_desc_entry_t *)(idtr.offset + entry_offset * sizeof(idt_desc_entry_t));
+    set_offset(interrupt, (uint64_t)handler);
+    interrupt->type_attr = type_attr;
+    interrupt->selector = selector;
+}
+
 void prepare_interrupts()
 {
     idtr.limit = 0x0FFF;
     idtr.offset = (uint64_t)request_page(&global_allocator);
 
-    idt_desc_entry_t *int_page_fault = (idt_desc_entry_t *)(idtr.offset + 0xE * sizeof(idt_desc_entry_t));
-    set_offset(int_page_fault, (uint64_t)page_fault_handler);
-    int_page_fault->type_attr = IDT_TA_InterruptGate;
-    int_page_fault->selector = 0x08;
+    set_idt_gate(double_fault_handler, 0x8, IDT_TA_InterruptGate, 0x08);
 
-    idt_desc_entry_t *int_double_fault = (idt_desc_entry_t *)(idtr.offset + 0x8 * sizeof(idt_desc_entry_t));
-    set_offset(int_double_fault, (uint64_t)double_fault_handler);
-    int_double_fault->type_attr = IDT_TA_InterruptGate;
-    int_double_fault->selector = 0x08;
+    set_idt_gate(general_protection_handler, 0xD, IDT_TA_InterruptGate, 0x08);
 
-    idt_desc_entry_t *int_gp_fault = (idt_desc_entry_t *)(idtr.offset + 0xD * sizeof(idt_desc_entry_t));
-    set_offset(int_gp_fault, (uint64_t)general_protection_handler);
-    int_gp_fault->type_attr = IDT_TA_InterruptGate;
-    int_gp_fault->selector = 0x08;
-
-    idt_desc_entry_t *int_keyboard_handler = (idt_desc_entry_t *)(idtr.offset + 0x21 * sizeof(idt_desc_entry_t));
-    set_offset(int_keyboard_handler, (uint64_t)ps2_keyboard_handler);
-    int_keyboard_handler->type_attr = IDT_TA_InterruptGate;
-    int_keyboard_handler->selector = 0x08;
+    set_idt_gate(ps2_keyboard_handler, 0x21, IDT_TA_InterruptGate, 0x08);
 
     asm("lidt %0" ::"m"(idtr));
 

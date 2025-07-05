@@ -9,7 +9,7 @@ ASMC = nasm
 LD = ld
 
 
-CFLAGS = -ffreestanding -fshort-wchar -g -Wall -Wextra 
+CFLAGS = -ffreestanding -fshort-wchar -g -Wall -Wextra -mno-red-zone
 ASMFLAGS = 
 LDFLAGS = -T $(LDS) -static -Bsymbolic -nostdlib -g
 
@@ -27,6 +27,9 @@ OBJS += $(patsubst $(SRCDIR)/%.asm, $(OBJDIR)/%_asm.o, $(ASMSRC))
 DIRS = $(wildcard $(SRCDIR)/*)
 
 all: kernel buildimg
+
+clean:
+	rm $(OBJS)
 
 kernel: $(OBJS) link
 $(OBJDIR)/interrupts/interrupts.o: $(SRCDIR)/interrupts/interrupts.c

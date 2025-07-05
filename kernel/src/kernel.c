@@ -11,8 +11,6 @@ void _start(boot_info_t *boot_info_ptr)
     printf("Kernel initialized successfully\n");
     char *t = malloc(4096);
     char *str = malloc(200);
-    printf("T: %u\n", (uint64_t)t);
-    printf("STR: %u\n", (uint64_t)str);
     // int alpha = 'a';
     // for (int i = 0; i < 200; ++i)
     // {
