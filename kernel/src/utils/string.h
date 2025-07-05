@@ -4,7 +4,7 @@
 
 void itoa(int64_t num, char *buffer);
 void uitoa(uint64_t num, char *buffer);
-void ftoa(float num, char *buffer, int places);
+void ftoa(double num, char *buffer, int places);
 void strcpy(char *dest, char *src);
 void reverse_str(char *str);
 size_t strlen(char *str);

@@ -98,7 +98,7 @@ void strcpy(char *dest, char *src)
     dest[i] = 0;
 }
 
-void ftoa(float num, char *buffer, int places)
+void ftoa(double num, char *buffer, int places)
 {
     char integer_component[33];
     itoa((int)num, integer_component);
@@ -107,7 +107,7 @@ void ftoa(float num, char *buffer, int places)
     {
         num *= -1;
     }
-    float decimal = num;
+    double decimal = num;
     decimal -= ((int)num);
     strcpy(buffer, integer_component);
     buffer[len] = '.';
@@ -161,11 +161,39 @@ int vsprintf(char *out, char *fmt, va_list args)
             ++p;
             switch (*p)
             {
+            case 'u':
+            {
+                uint64_t value = va_arg(args, uint64_t);
+                char buf[32];
+                uitoa(value, buf);
+                int i = 0;
+                int len = strlen(buf);
+                for (; i < len; ++i)
+                {
+                    *out_ptr = buf[i];
+                    ++out_ptr;
+                }
+            }
+            break;
             case 'd':
             {
                 int value = va_arg(args, int);
                 char buf[32];
                 itoa(value, buf);
+                int i = 0;
+                int len = strlen(buf);
+                for (; i < len; ++i)
+                {
+                    *out_ptr = buf[i];
+                    ++out_ptr;
+                }
+            }
+            break;
+            case 'f':
+            {
+                double value = va_arg(args, double);
+                char buf[32];
+                ftoa(value, buf, 4);
                 for (char *b = buf; *b; b++)
                 {
                     *out_ptr = *b;

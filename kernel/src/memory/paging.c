@@ -190,7 +190,37 @@ void *request_page(page_frame_allocator_t *allocator)
             return (void *)(page_bitmap_idx * 4096);
         }
     }
+    page_bitmap_idx = 0;
     return (void *)0;
+}
+
+void *request_pages(page_frame_allocator_t *allocator, int num_pages)
+{
+    int count = 0;
+    void *ptr = (void *)0;
+    for (; page_bitmap_idx < allocator->page_bitmap.size * 8; ++page_bitmap_idx)
+    {
+        if (count == num_pages)
+        {
+            lock_pages(allocator, ptr, num_pages);
+            return ptr;
+        }
+        if (!bitmap_get(&allocator->page_bitmap, page_bitmap_idx))
+        {
+            if (count == 0)
+            {
+                ptr = (void *)(page_bitmap_idx * 4096);
+            }
+            ++count;
+        }
+        else
+        {
+            count = 0;
+            ptr = (void *)0;
+        }
+    }
+    page_bitmap_idx = 0;
+    return ptr;
 }
 
 page_frame_allocator_t global_allocator = {};

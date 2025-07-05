@@ -8,6 +8,7 @@
 #include "../memory/paging.h"
 #include "../memory/pagemapindexer.h"
 #include "../memory/pagetables.h"
+#include "../memory/malloc.h"
 
 extern uint64_t _kernel_start;
 extern uint64_t _kernel_end;

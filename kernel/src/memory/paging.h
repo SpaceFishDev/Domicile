@@ -22,6 +22,7 @@ void lock_page(page_frame_allocator_t *allocator, void *addr);
 void free_pages(page_frame_allocator_t *allocator, void *addr, size_t page_count);
 void lock_pages(page_frame_allocator_t *allocator, void *addr, size_t page_count);
 void *request_page(page_frame_allocator_t *allocator);
+void *request_pages(page_frame_allocator_t *allocator, int num_pages);
 
 uint64_t get_free_memory();
 uint64_t get_used_memory();
