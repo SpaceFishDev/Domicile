@@ -20,6 +20,7 @@ __attribute__((interrupt)) void page_fault_handler(struct interrupt_frame *inter
 __attribute__((interrupt)) void double_fault_handler(struct interrupt_frame *interrupt_frame);
 __attribute__((interrupt)) void general_protection_handler(struct interrupt_frame *interrupt_frame);
 __attribute__((interrupt)) void ps2_keyboard_handler(struct interrupt_frame *interrupt_frame);
+__attribute__((interrupt)) void ps2_mouse_handler(struct interrupt_frame *interrupt_frame);
 
 void remap_pic();
 void pic_end_master();

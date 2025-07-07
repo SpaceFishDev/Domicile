@@ -3,6 +3,7 @@
 #include "../interrupts/idt.h"
 #include "../interrupts/interrupts.h"
 #include "../ps2/keyboard.h"
+#include "../ps2/mouse.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)
@@ -50,19 +51,19 @@ void prepare_interrupts()
     idtr.limit = 0x0FFF;
     idtr.offset = (uint64_t)request_page(&global_allocator);
 
+    set_idt_gate(page_fault_handler, 0xE, IDT_TA_InterruptGate, 0x08);
+
     set_idt_gate(double_fault_handler, 0x8, IDT_TA_InterruptGate, 0x08);
 
     set_idt_gate(general_protection_handler, 0xD, IDT_TA_InterruptGate, 0x08);
 
     set_idt_gate(ps2_keyboard_handler, 0x21, IDT_TA_InterruptGate, 0x08);
 
+    set_idt_gate(ps2_mouse_handler, 0x2C, IDT_TA_InterruptGate, 0x08);
+
     asm("lidt %0" ::"m"(idtr));
 
     remap_pic();
-    outb(PIC1_DATA, 0b11111101);
-    outb(PIC2_DATA, 0b11111111);
-
-    asm("sti");
 }
 
 basic_renderer_t *global_basic_renderer;
@@ -80,8 +81,16 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     kernel_info->page_table_manager = &page_table_manager;
     key_event_t *buffer = (key_event_t *)request_page(&global_allocator);
     init_keyboard_handler(&global_keyboard_handler, buffer, 0x1000 / sizeof(key_event_t));
-    prepare_interrupts();
     renderer = (basic_renderer_t){point(40, 40), boot_info->frame_buffer, boot_info->font};
     global_basic_renderer = &renderer;
+    prepare_interrupts();
+    init_ps2_mouse();
+
+    outb(PIC1_DATA, 0b11111001);
+    outb(PIC2_DATA, 0b11101111);
+
+    asm("sti");
+
     init_allocator(&global_kmalloc, KMALLOC_MAX_DESCRIPTORS);
+    init_mouse_handler(&global_mouse_handler);
 }

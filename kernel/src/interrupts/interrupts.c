@@ -1,6 +1,7 @@
 #include "interrupts.h"
 #include "panic.h"
 #include "../ps2/keyboard.h"
+#include "../ps2/mouse.h"
 
 __attribute__((interrupt)) void page_fault_handler(struct interrupt_frame *interrupt_frame)
 {
@@ -26,6 +27,12 @@ __attribute__((interrupt)) void ps2_keyboard_handler(struct interrupt_frame *int
     uint8_t scan_code = inb(0x60);
     handle_key(&global_keyboard_handler, scan_code);
     pic_end_master();
+}
+__attribute__((interrupt)) void ps2_mouse_handler(struct interrupt_frame *interrupt_frame)
+{
+    uint8_t val = inb(0x60);
+    handle_ps2_mouse_data(val);
+    pic_end_slave();
 }
 
 void remap_pic()

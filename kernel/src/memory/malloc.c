@@ -111,6 +111,7 @@ void *realloc(void *ptr, uint64_t size)
             {
                 return (void *)0;
             }
+            printf("Here\n");
             for (uint64_t j = 0; j < old_size; ++j)
             {
                 ((char *)new_ptr)[j] = ((char *)global_kmalloc.block_descriptors[i].ptr)[j];
