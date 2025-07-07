@@ -69,6 +69,7 @@ void prepare_interrupts()
 basic_renderer_t *global_basic_renderer;
 basic_renderer_t renderer;
 
+mouse_handler_t mouse_handler;
 #define KMALLOC_MAX_DESCRIPTORS 16384
 
 void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
@@ -84,7 +85,9 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     renderer = (basic_renderer_t){point(40, 40), boot_info->frame_buffer, boot_info->font};
     global_basic_renderer = &renderer;
     prepare_interrupts();
-    init_ps2_mouse();
+    mouse_event_t *mouse_buffer = (mouse_event_t *)request_page(&global_allocator);
+    init_mouse_handler(&mouse_handler, mouse_buffer, 0x1000);
+    global_mouse_handler = &mouse_handler;
 
     outb(PIC1_DATA, 0b11111001);
     outb(PIC2_DATA, 0b11101111);
@@ -92,5 +95,4 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     asm("sti");
 
     init_allocator(&global_kmalloc, KMALLOC_MAX_DESCRIPTORS);
-    init_mouse_handler(&global_mouse_handler);
 }

@@ -31,7 +31,7 @@ __attribute__((interrupt)) void ps2_keyboard_handler(struct interrupt_frame *int
 __attribute__((interrupt)) void ps2_mouse_handler(struct interrupt_frame *interrupt_frame)
 {
     uint8_t val = inb(0x60);
-    handle_ps2_mouse_data(val);
+    handle_ps2_mouse_data(global_mouse_handler, val);
     pic_end_slave();
 }
 

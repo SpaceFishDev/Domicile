@@ -32,16 +32,17 @@ typedef struct
     uint8_t packet[4];
     uint8_t ready;
     mouse_event_t *buffer;
+    uint64_t mouse_stack_pos;
     uint64_t buffer_size;
 } mouse_handler_t;
 
 void init_ps2_mouse();
-void handle_ps2_mouse_data(uint8_t data);
-void init_mouse_handler(mouse_handler_t *mouse_handler);
-void process_mouse_packet();
-void push_mouse_event(mouse_event_t ev);
-mouse_event_t pop_mouse_event();
+void init_mouse_handler(mouse_handler_t *handler, mouse_event_t *buffer, uint64_t buffer_size);
+void handle_ps2_mouse_data(mouse_handler_t *handler, uint8_t data);
+void process_mouse_packet(mouse_handler_t *handler);
+void push_mouse_event(mouse_handler_t *handler, mouse_event_t ev);
+mouse_event_t pop_mouse_event(mouse_handler_t *handler);
 
-extern mouse_handler_t global_mouse_handler;
+extern mouse_handler_t *global_mouse_handler;
 
 #endif

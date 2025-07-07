@@ -2,6 +2,14 @@
 
 void framebuffer_put_pixel(frame_buffer_t *frame_buffer, int x, int y, uint8_t r, uint8_t g, uint8_t b)
 {
+    if (x < 0 || x > (int)frame_buffer->width)
+    {
+        return;
+    }
+    if (y < 0 || y > (int)frame_buffer->height)
+    {
+        return;
+    }
     int *ptr = ((int *)frame_buffer->base_addr) + (x + y * frame_buffer->pixels_per_scanline);
 
     char *chptr = (char *)ptr;

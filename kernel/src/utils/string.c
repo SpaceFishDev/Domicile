@@ -178,15 +178,26 @@ int vsprintf(char *out, char *fmt, va_list args)
             case 'd':
             {
                 int value = va_arg(args, int);
+                int used_value = value;
+                if (value < 0)
+                {
+                    used_value = -value;
+                }
                 char buf[32];
-                itoa(value, buf);
+                itoa(used_value, buf);
                 int i = 0;
                 int len = strlen(buf);
+                if (value < 0)
+                {
+                    i++;
+                    ++out_ptr;
+                }
                 for (; i < len; ++i)
                 {
                     *out_ptr = buf[i];
                     ++out_ptr;
                 }
+                *(out_ptr - len) = '-';
             }
             break;
             case 'f':

@@ -2,7 +2,7 @@
 #include "../basic_renderer/basic_renderer.h"
 #include "../memory/malloc.h"
 
-mouse_handler_t global_mouse_handler;
+mouse_handler_t *global_mouse_handler;
 
 void mouse_wait()
 {
@@ -41,13 +41,21 @@ uint8_t mouse_read()
     mouse_wait_input();
     return inb(0x60);
 }
-void init_mouse_handler(mouse_handler_t *handler)
+void init_mouse_handler(mouse_handler_t *handler, mouse_event_t *buffer, uint64_t buffer_size)
 {
+    init_ps2_mouse();
     handler->current_cycle = 0;
     memset(handler->packet, 0, 4);
     handler->ready = 0;
-    handler->buffer = malloc(sizeof(mouse_event_t));
-    handler->buffer_size = 1;
+    handler->buffer = buffer;
+    handler->buffer_size = buffer_size / sizeof(mouse_event_t);
+    handler->mouse_stack_pos = handler->buffer_size - 1;
+
+    if (!handler->buffer)
+    {
+        printf("Couldnt get buffer!\n");
+    }
+    printf("Buffer PTR: %u\n", handler->buffer);
 }
 
 void init_ps2_mouse()
@@ -71,13 +79,13 @@ void init_ps2_mouse()
     mouse_read();
 }
 
-void handle_ps2_mouse_data(uint8_t data)
+void handle_ps2_mouse_data(mouse_handler_t *handler, uint8_t data)
 {
-    switch (global_mouse_handler.current_cycle)
+    switch (handler->current_cycle)
     {
     case 0:
     {
-        if (global_mouse_handler.ready)
+        if (handler->ready)
         {
             break;
         }
@@ -85,29 +93,29 @@ void handle_ps2_mouse_data(uint8_t data)
         {
             break;
         }
-        global_mouse_handler.packet[0] = data;
-        global_mouse_handler.current_cycle++;
+        handler->packet[0] = data;
+        handler->current_cycle++;
     }
     break;
     case 1:
     {
-        if (global_mouse_handler.ready)
+        if (handler->ready)
         {
             break;
         }
-        global_mouse_handler.packet[1] = data;
-        global_mouse_handler.current_cycle++;
+        handler->packet[1] = data;
+        handler->current_cycle++;
     }
     break;
     case 2:
     {
-        if (global_mouse_handler.ready)
+        if (handler->ready)
         {
             break;
         }
-        global_mouse_handler.packet[2] = data;
-        global_mouse_handler.ready = 1;
-        global_mouse_handler.current_cycle = 0;
+        handler->packet[2] = data;
+        handler->ready = 1;
+        handler->current_cycle = 0;
     }
     break;
     }
@@ -115,17 +123,18 @@ void handle_ps2_mouse_data(uint8_t data)
 
 #include <stdbool.h>
 
-void process_mouse_packet()
+void process_mouse_packet(mouse_handler_t *handler)
 {
-    if (!global_mouse_handler.ready)
+    if (!handler->ready)
     {
         return;
     }
-    global_mouse_handler.ready = 0;
+    handler->ready = 0;
 
     bool x_neg, y_neg, x_overflow, y_overflow;
-    uint8_t *packet = global_mouse_handler.packet;
+    uint8_t *packet = handler->packet;
     mouse_event_t ev;
+    ev.type = MOUSE_NO_TYPE;
     x_neg = (packet[0] & PS2XSign) > 0;
     y_neg = (packet[0] & PS2YSign) > 0;
     x_overflow = (packet[0] & PS2XOverflow) > 0;
@@ -136,11 +145,16 @@ void process_mouse_packet()
         ev.value = packet[1];
         ev.value += x_overflow ? 255 : 0;
     }
-    if (x_neg)
+    else
     {
         ev.type = X_MOVEMENT;
-        ev.value = -packet[1];
+        ev.value = 256 - packet[1];
+        ev.value *= -1;
         ev.value -= x_overflow ? 255 : 0;
+    }
+    if (ev.type != MOUSE_NO_TYPE)
+    {
+        push_mouse_event(handler, ev);
     }
     if (!y_neg)
     {
@@ -148,26 +162,35 @@ void process_mouse_packet()
         ev.value = packet[2];
         ev.value += y_overflow ? 255 : 0;
     }
-    if (y_neg)
+    else
     {
         ev.type = Y_MOVEMENT;
-        ev.value = -packet[2];
+        ev.value = 256 - packet[2];
+        ev.value *= -1;
         ev.value -= y_overflow ? 255 : 0;
     }
-    push_mouse_event(ev);
+    if (ev.type != MOUSE_NO_TYPE)
+    {
+        ev.value *= -1;
+        push_mouse_event(handler, ev);
+    }
 }
-void push_mouse_event(mouse_event_t ev)
+void push_mouse_event(mouse_handler_t *handler, mouse_event_t ev)
 {
-    global_mouse_handler.buffer[global_mouse_handler.buffer_size] = ev;
-    global_mouse_handler.buffer_size++;
-    global_mouse_handler.buffer = realloc(global_mouse_handler.buffer, global_mouse_handler.buffer_size * sizeof(mouse_event_t));
+    if (handler->mouse_stack_pos == 0)
+    {
+        handler->mouse_stack_pos = handler->buffer_size - 1;
+    }
+    handler->buffer[handler->mouse_stack_pos] = ev;
+    handler->mouse_stack_pos--;
 }
-mouse_event_t pop_mouse_event()
+mouse_event_t pop_mouse_event(mouse_handler_t *handler)
 {
-    if (global_mouse_handler.buffer_size == 0)
+    if (handler->mouse_stack_pos >= handler->buffer_size - 1)
     {
         return (mouse_event_t){};
     }
-    global_mouse_handler.buffer_size--;
-    return global_mouse_handler.buffer[global_mouse_handler.buffer_size];
+    handler->mouse_stack_pos++;
+    mouse_event_t ev = handler->buffer[handler->mouse_stack_pos];
+    return ev;
 }
