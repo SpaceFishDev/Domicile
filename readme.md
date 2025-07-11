@@ -8,4 +8,10 @@ Domicile is a 64 bit Operating System.
 - Basic Pixel Plotting.
 - IDT.
 - Keyboard input.
-
+- printf and sprintf implimentations.
+- malloc+free
+- mouse handler
+- acpi
+- pci
+- kernel trace
+- more detailed panic screens
