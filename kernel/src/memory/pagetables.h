@@ -42,4 +42,6 @@ typedef struct
 void init_page_table_manager(page_table_manager_t *manager, page_table_t *pml4_addr);
 void map_memory(page_table_manager_t *manager, void *virt_addr, void *phys_addr, bool cache);
 
+extern page_table_manager_t *global_page_table_manager;
+
 #endif

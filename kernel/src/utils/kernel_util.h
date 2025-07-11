@@ -1,3 +1,5 @@
+#ifndef KERN_UTIL_H
+#define KERN_UTIL_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -20,3 +22,5 @@ typedef struct
 } kernel_info_t;
 
 void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info);
+
+#endif

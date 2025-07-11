@@ -97,6 +97,26 @@ void strcpy(char *dest, char *src)
     }
     dest[i] = 0;
 }
+void itoa_hex(uint64_t num, char *buffer)
+{
+    const char *hex_digits = "0123456789ABCDEF";
+    int shift = 60; // start from the most significant nibble
+    int started = 0;
+    int i = 0;
+
+    while (shift >= 0)
+    {
+        uint8_t nibble = (num >> shift) & 0xF;
+        if (nibble != 0 || started || shift == 0)
+        {
+            buffer[i++] = hex_digits[nibble];
+            started = 1;
+        }
+        shift -= 4;
+    }
+
+    buffer[i] = '\0';
+}
 
 void ftoa(double num, char *buffer, int places)
 {
@@ -120,23 +140,6 @@ void ftoa(double num, char *buffer, int places)
     char decimal_component[33];
     itoa(idecimal, decimal_component);
     strcpy(buffer + idx, decimal_component);
-}
-
-void itoa_hex(uint64_t num, char *buffer)
-{
-    uint64_t *valptr = &num;
-    uint8_t *ptr;
-    uint8_t temp;
-    uint8_t size = 8 * 2 - 1;
-    for (uint8_t i = 0; i < size; i++)
-    {
-        ptr = ((uint8_t *)valptr + i);
-        temp = ((*ptr & 0xF0) >> 4);
-        buffer[size - (i * 2 + 1)] = temp > 9 ? 'A' + (temp - 10) : '0' + temp;
-        temp = ((*ptr & 0x0F));
-        buffer[size - (i * 2)] = temp > 9 ? 'A' + (temp - 10) : '0' + temp;
-    }
-    buffer[size + 1] = 0;
 }
 
 void memset(void *start, uint8_t value, uint64_t num)
@@ -198,6 +201,17 @@ int vsprintf(char *out, char *fmt, va_list args)
                     ++out_ptr;
                 }
                 *(out_ptr - len) = '-';
+            }
+            break;
+            case 'x':
+            {
+                uint64_t value = va_arg(args, uint64_t);
+                char buf[17]; // 16 hex digits max + null terminator
+                itoa_hex(value, buf);
+                for (int i = 0; buf[i]; ++i)
+                {
+                    *out_ptr++ = buf[i];
+                }
             }
             break;
             case 'f':

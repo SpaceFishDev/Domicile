@@ -73,6 +73,7 @@ void clear_screen(basic_renderer_t *renderer, uint8_t r, uint8_t g, uint8_t b)
             framebuffer_put_pixel(renderer->frame_buffer, x, y, r, g, b);
         }
     }
+    renderer->cursor_position = (point_t){40, 16};
 }
 
 int printf(char *fmt, ...)

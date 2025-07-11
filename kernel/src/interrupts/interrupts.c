@@ -1,7 +1,7 @@
 #include "interrupts.h"
 #include "panic.h"
-#include "../ps2/keyboard.h"
-#include "../ps2/mouse.h"
+#include "../device-drivers/ps2/keyboard.h"
+#include "../device-drivers/ps2/mouse.h"
 
 __attribute__((interrupt)) void page_fault_handler(struct interrupt_frame *interrupt_frame)
 {

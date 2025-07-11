@@ -3,6 +3,7 @@
 #define BOOTLOADER_STRUCTS_H
 
 #include "efi_memory.h"
+#include "../device-drivers/acpi/acpi.h"
 
 typedef struct
 {
@@ -38,6 +39,7 @@ typedef struct
     frame_buffer_t *frame_buffer;
     psf1_font_t *font;
     mem_info_t *memory_info;
+    rsdp2_t *rsdp;
 } boot_info_t;
 
 #endif

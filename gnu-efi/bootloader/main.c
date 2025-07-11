@@ -146,7 +146,22 @@ typedef struct
 	frame_buffer_t *frame_buffer;
 	psf1_font_t *font;
 	mem_info_t *memory_info;
+	void *rsdp;
 } boot_info_t;
+
+UINTN strcmp(CHAR8 *a, CHAR8 *b, UINTN length)
+{
+	for (UINTN i = 0; i < length; ++i)
+	{
+		if (*a != *b)
+		{
+			return 0;
+		}
+		++a;
+		++b;
+	}
+	return 1;
+}
 
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
 {
@@ -231,6 +246,22 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
 		system_table->BootServices->GetMemoryMap(&map_size, map, &map_key, &descriptor_size, &descriptor_version);
 	}
 
+	EFI_CONFIGURATION_TABLE *config_table = system_table->ConfigurationTable;
+	void *rsdp = NULL;
+	EFI_GUID acpi2_table_guid = ACPI_20_TABLE_GUID;
+
+	for (UINTN idx = 0; idx < system_table->NumberOfTableEntries; ++idx)
+	{
+		if (CompareGuid(&config_table[idx].VendorGuid, &acpi2_table_guid))
+		{
+			if (strcmp((CHAR8 *)"RSD PTR ", (CHAR8 *)config_table->VendorTable, 8))
+			{
+				rsdp = (void *)config_table->VendorTable;
+			}
+		}
+		config_table++;
+	}
+
 	void (*kernel_start)(boot_info_t *) = ((__attribute__((sysv_abi)) void (*)(boot_info_t *))header.e_entry);
 
 	boot_info_t boot_info;
@@ -238,6 +269,7 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table)
 	boot_info.frame_buffer = frame_buffer;
 	mem_info_t mem_info = (mem_info_t){map, map_size, descriptor_size};
 	boot_info.memory_info = &mem_info;
+	boot_info.rsdp = rsdp;
 
 	system_table->BootServices->ExitBootServices(image_handle, map_key);
 

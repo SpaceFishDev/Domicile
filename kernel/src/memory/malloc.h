@@ -25,6 +25,7 @@ void init_allocator(kernel_allocator_t *allocator, int max_descriptors);
 void *malloc(uint64_t size);
 void free(void *ptr);
 void *realloc(void *ptr, uint64_t size);
+void memcpy(void *to, void *from, uint64_t num);
 
 extern kernel_allocator_t global_kmalloc;
 

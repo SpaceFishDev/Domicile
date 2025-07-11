@@ -1,6 +1,7 @@
 #include "pagetables.h"
 #include "pagemapindexer.h"
 #include "../utils/string.h"
+page_table_manager_t *global_page_table_manager;
 
 void set_flag(page_directory_entry_t *p_entry, int flag, bool enabled)
 {

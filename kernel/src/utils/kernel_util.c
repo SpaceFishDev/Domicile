@@ -2,8 +2,11 @@
 #include "../gdt/gdt.h"
 #include "../interrupts/idt.h"
 #include "../interrupts/interrupts.h"
-#include "../ps2/keyboard.h"
-#include "../ps2/mouse.h"
+#include "../device-drivers/ps2/keyboard.h"
+#include "../device-drivers/ps2/mouse.h"
+#include "../device-drivers/acpi/acpi.h"
+#include "../device-drivers/pci/pci.h"
+#include "../kernel-trace/kernel_trace.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)
@@ -48,6 +51,8 @@ void set_idt_gate(void *handler, uint8_t entry_offset, uint8_t type_attr, uint8_
 
 void prepare_interrupts()
 {
+    KERN_TRACE_FUNC;
+
     idtr.limit = 0x0FFF;
     idtr.offset = (uint64_t)request_page(&global_allocator);
 
@@ -72,19 +77,53 @@ basic_renderer_t renderer;
 mouse_handler_t mouse_handler;
 #define KMALLOC_MAX_DESCRIPTORS 16384
 
-void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
+#define DEVICE(device_id, vendor_id, name) \
+    ((pci_device_t){device_id, vendor_id, name})
+
+void register_known_devices()
+{
+    register_device(DEVICE(0x2930, 0x8086, "SMBus Controller"));
+    register_device(DEVICE(0x2922, 0x8086, "SATA Controller [AHCI mode]"));
+    register_device(DEVICE(0x2918, 0x8086, "LPC Interface Controller"));
+    register_device(DEVICE(0x29C0, 0x8086, "Express DRAM Controller"));
+    register_device(DEVICE(0x1111, 0x1234, "VGA Controller"));
+}
+
+void init_gdt()
 {
     gdt_descriptor_t gdt_descriptor;
     gdt_descriptor.size = sizeof(gdt_t) - 1;
     gdt_descriptor.offset = (uint64_t)&default_gdt;
     load_gdt(&gdt_descriptor);
+}
+
+void init_memory(kernel_info_t *kernel_info, boot_info_t *boot_info)
+{
     prepare_memory(boot_info);
     kernel_info->page_table_manager = &page_table_manager;
-    key_event_t *buffer = (key_event_t *)request_page(&global_allocator);
-    init_keyboard_handler(&global_keyboard_handler, buffer, 0x1000 / sizeof(key_event_t));
+    global_page_table_manager = kernel_info->page_table_manager;
+    init_allocator(&global_kmalloc, KMALLOC_MAX_DESCRIPTORS);
+}
+
+void init_rendering(boot_info_t *boot_info)
+{
     renderer = (basic_renderer_t){point(40, 40), boot_info->frame_buffer, boot_info->font};
     global_basic_renderer = &renderer;
+}
+
+void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
+{
+    init_gdt();
+    init_memory(kernel_info, boot_info);
+    init_rendering(boot_info);
+
+    init_kernel_trace();
+    global_trace_manager->logging = 1;
+
+    key_event_t *buffer = (key_event_t *)request_page(&global_allocator);
+    init_keyboard_handler(&global_keyboard_handler, buffer, 0x1000 / sizeof(key_event_t));
     prepare_interrupts();
+
     mouse_event_t *mouse_buffer = (mouse_event_t *)request_page(&global_allocator);
     init_mouse_handler(&mouse_handler, mouse_buffer, 0x1000);
     global_mouse_handler = &mouse_handler;
@@ -94,5 +133,14 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
 
     asm("sti");
 
-    init_allocator(&global_kmalloc, KMALLOC_MAX_DESCRIPTORS);
+    register_known_devices();
+    mcfg_header_t *mcfg_header = prepare_acpi(boot_info->rsdp);
+    enumerate_pci(mcfg_header);
+
+    clear_screen(global_basic_renderer, 0, 0, 0);
+    dump_trace();
+    printf("Kernel initialized successfully\n");
+
+    global_trace_manager->logging = 0;
+    kernel_trace_clear();
 }

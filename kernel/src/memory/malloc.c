@@ -111,7 +111,6 @@ void *realloc(void *ptr, uint64_t size)
             {
                 return (void *)0;
             }
-            printf("Here\n");
             for (uint64_t j = 0; j < old_size; ++j)
             {
                 ((char *)new_ptr)[j] = ((char *)global_kmalloc.block_descriptors[i].ptr)[j];
@@ -121,4 +120,14 @@ void *realloc(void *ptr, uint64_t size)
         }
     }
     return (void *)0;
+}
+
+void memcpy(void *to, void *from, uint64_t num)
+{
+    uint8_t *src = from;
+    uint8_t *dest = to;
+    for (uint64_t i = 0; i < num; ++i)
+    {
+        dest[i] = src[i];
+    }
 }

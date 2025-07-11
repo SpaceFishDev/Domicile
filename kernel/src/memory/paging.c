@@ -1,4 +1,5 @@
 #include "paging.h"
+#include "../basic_renderer/basic_renderer.h"
 
 void reserve_page(page_frame_allocator_t *allocator, void *addr);
 void unreserve_page(page_frame_allocator_t *allocator, void *addr);
