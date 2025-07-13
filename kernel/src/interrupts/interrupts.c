@@ -2,6 +2,7 @@
 #include "panic.h"
 #include "../device-drivers/ps2/keyboard.h"
 #include "../device-drivers/ps2/mouse.h"
+#include "../device-drivers/pit/pit.h"
 
 __attribute__((interrupt)) void page_fault_handler(struct interrupt_frame *interrupt_frame)
 {
@@ -33,6 +34,12 @@ __attribute__((interrupt)) void ps2_mouse_handler(struct interrupt_frame *interr
     uint8_t val = inb(0x60);
     handle_ps2_mouse_data(global_mouse_handler, val);
     pic_end_slave();
+}
+
+__attribute__((interrupt)) void pit_handler(struct interrupt_frame *interrupt_frame)
+{
+    pit_timer_tick();
+    pic_end_master();
 }
 
 void remap_pic()

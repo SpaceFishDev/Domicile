@@ -7,6 +7,8 @@
 #include "../device-drivers/acpi/acpi.h"
 #include "../device-drivers/pci/pci.h"
 #include "../kernel-trace/kernel_trace.h"
+#include "../device-drivers/pit/pit.h"
+#include "../device-drivers/ahci/ahci.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)
@@ -66,6 +68,8 @@ void prepare_interrupts()
 
     set_idt_gate(ps2_mouse_handler, 0x2C, IDT_TA_InterruptGate, 0x08);
 
+    set_idt_gate(pit_handler, 0x20, IDT_TA_InterruptGate, 0x08);
+
     asm("lidt %0" ::"m"(idtr));
 
     remap_pic();
@@ -111,6 +115,32 @@ void init_rendering(boot_info_t *boot_info)
     global_basic_renderer = &renderer;
 }
 
+void init_keyboard()
+{
+    key_event_t *buffer = (key_event_t *)request_page(&global_allocator);
+    init_keyboard_handler(&global_keyboard_handler, buffer, 0x1000 / sizeof(key_event_t));
+}
+
+void init_mouse()
+{
+    mouse_event_t *mouse_buffer = (mouse_event_t *)request_page(&global_allocator);
+    init_mouse_handler(&mouse_handler, mouse_buffer, 0x1000);
+    global_mouse_handler = &mouse_handler;
+}
+
+void unmask_pic()
+{
+    outb(PIC1_DATA, 0b11111000);
+    outb(PIC2_DATA, 0b11101111);
+}
+
+void init_pci(boot_info_t *boot_info)
+{
+    register_known_devices();
+    mcfg_header_t *mcfg_header = prepare_acpi(boot_info->rsdp);
+    enumerate_pci(mcfg_header);
+}
+
 void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
 {
     init_gdt();
@@ -118,26 +148,38 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     init_rendering(boot_info);
 
     init_kernel_trace();
-    global_trace_manager->logging = 1;
+    global_trace_manager->logging = 0;
 
-    key_event_t *buffer = (key_event_t *)request_page(&global_allocator);
-    init_keyboard_handler(&global_keyboard_handler, buffer, 0x1000 / sizeof(key_event_t));
+    init_keyboard();
+
     prepare_interrupts();
 
-    mouse_event_t *mouse_buffer = (mouse_event_t *)request_page(&global_allocator);
-    init_mouse_handler(&mouse_handler, mouse_buffer, 0x1000);
-    global_mouse_handler = &mouse_handler;
-
-    outb(PIC1_DATA, 0b11111001);
-    outb(PIC2_DATA, 0b11101111);
+    unmask_pic();
 
     asm("sti");
 
-    register_known_devices();
-    mcfg_header_t *mcfg_header = prepare_acpi(boot_info->rsdp);
-    enumerate_pci(mcfg_header);
+    pit_set_divisor(2000);
 
     clear_screen(global_basic_renderer, 0, 0, 0);
+    init_pci(boot_info);
+
+    ahci_manager_t *manager = malloc(sizeof(ahci_manager_t));
+    if (AHCI_exists)
+    {
+        for (int i = 0; i < sizeof(ahci_manager_t); ++i)
+        {
+            char *ptr = (char *)manager;
+            ptr[i] = 0;
+        }
+        init_ahci_manager(manager, ahci_device);
+    }
+    else
+    {
+        free(manager);
+        manager = 0;
+    }
+    kernel_info->ahci_manager = manager;
+
     dump_trace();
     printf("Kernel initialized successfully\n");
 

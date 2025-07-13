@@ -3,9 +3,21 @@
 #include "../../memory/malloc.h"
 #include "../../basic_renderer/basic_renderer.h"
 #include "../../kernel-trace/kernel_trace.h"
+#include "../ahci/ahci.h"
 
 pci_device_t *pci_devices;
 uint64_t num_pci_device;
+bool AHCI_exists = false;
+pci_device_header_t *ahci_device;
+
+void check_ahci(pci_device_header_t *pci_device_header)
+{
+    if (pci_device_header->class == 0x01 && pci_device_header->sub_class == 0x06 && pci_device_header->prog_if == 0x01)
+    {
+        AHCI_exists = true;
+        ahci_device = pci_device_header;
+    }
+}
 
 void enumerate_function(uint64_t device_addr, uint64_t function)
 {
@@ -27,6 +39,8 @@ void enumerate_function(uint64_t device_addr, uint64_t function)
     itoa_hex(device_id, buffer);
     printf("%s 0x%s 0x%x %s %s", get_vendor_name(pci_device_header->vendor_id), buffer, pci_device_header->vendor_id, pci_device_classes[pci_device_header->class], get_device_name(pci_device_header->vendor_id, pci_device_header->device_id));
     printf("\n");
+
+    check_ahci(pci_device_header);
 }
 void enumerate_device(uint64_t bus_addr, uint64_t device)
 {

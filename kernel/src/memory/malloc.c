@@ -11,10 +11,10 @@ void init_allocator(kernel_allocator_t *allocator, int max_descriptors)
     allocator->bitmap.buffer = (uint8_t *)bitmap_buffer;
     allocator->bitmap_size = 1;
     allocator->block_descriptors = (mem_block_t *)descriptor_buffer;
-    allocator->buffer = (void *)request_page(&global_allocator);
-    allocator->buffer_size = 4096;
+    allocator->buffer = (void *)request_pages(&global_allocator, 10);
+    allocator->buffer_size = 4096 * 10;
     allocator->block_descriptors[0].ptr = allocator->buffer;
-    allocator->block_descriptors[0].size = 4096;
+    allocator->block_descriptors[0].size = 4096 * 10;
     allocator->max_descriptor = max_descriptors;
     allocator->num_descriptor = 1;
     allocator->bitmap.size = max_descriptors;

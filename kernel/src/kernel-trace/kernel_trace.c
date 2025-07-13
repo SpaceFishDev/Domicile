@@ -26,6 +26,8 @@ void add_trace_token(trace_token_t token)
 {
     trace_token_t *ptr = malloc(sizeof(trace_token_t));
     *ptr = token;
+    ptr->next = 0;
+    ptr->prev = 0;
     if (!global_trace_manager->tail)
     {
         global_trace_manager->trace_tokens = ptr;
