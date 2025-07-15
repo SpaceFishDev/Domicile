@@ -1,2 +1,2 @@
 .vscode
-src/kernel/disk.img
+kernel/disk.img
