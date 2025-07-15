@@ -28,6 +28,15 @@ DIRS = $(wildcard $(SRCDIR)/*)
 
 all: kernel buildimg
 
+FOLDER=./disk_contents
+IMG="disk.img"
+SIZE_MB=100
+
+disk: 
+	dd if=/dev/zero of="$(IMG)" bs=1M count=$(SIZE_MB)
+	mkfs.vfat -F 32 "$(IMG)"
+	mcopy -i disk.img ./disk_contents/* ::/
+
 clean:
 	rm $(OBJS)
 

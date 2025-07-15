@@ -9,6 +9,7 @@
 #include "../kernel-trace/kernel_trace.h"
 #include "../device-drivers/pit/pit.h"
 #include "../device-drivers/ahci/ahci.h"
+#include "../filesystem/fat.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)
@@ -106,7 +107,7 @@ void init_memory(kernel_info_t *kernel_info, boot_info_t *boot_info)
     prepare_memory(boot_info);
     kernel_info->page_table_manager = &page_table_manager;
     global_page_table_manager = kernel_info->page_table_manager;
-    init_allocator(&global_kmalloc, KMALLOC_MAX_DESCRIPTORS);
+    init_allocator(&global_kmalloc);
 }
 
 void init_rendering(boot_info_t *boot_info)
@@ -148,7 +149,7 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     init_rendering(boot_info);
 
     init_kernel_trace();
-    global_trace_manager->logging = 0;
+    global_trace_manager->logging = 1;
 
     init_keyboard();
 
@@ -166,7 +167,7 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     ahci_manager_t *manager = malloc(sizeof(ahci_manager_t));
     if (AHCI_exists)
     {
-        for (int i = 0; i < sizeof(ahci_manager_t); ++i)
+        for (uint64_t i = 0; i < sizeof(ahci_manager_t); ++i)
         {
             char *ptr = (char *)manager;
             ptr[i] = 0;
@@ -179,6 +180,10 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
         manager = 0;
     }
     kernel_info->ahci_manager = manager;
+
+    fat32_manager_t *f32_manager = malloc(sizeof(fat32_manager_t));
+    printf("Free Mem: %uMB\n", (get_free_memory() / 1024) / 1024);
+    init_fat32_manager(f32_manager, 0);
 
     dump_trace();
     printf("Kernel initialized successfully\n");

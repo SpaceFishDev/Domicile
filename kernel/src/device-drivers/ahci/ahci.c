@@ -2,6 +2,8 @@
 #include "../../kernel-trace/kernel_trace.h"
 #include "../../basic_renderer/basic_renderer.h"
 
+ahci_manager_t *global_ahci_manager;
+
 void init_ahci_manager(ahci_manager_t *manager, pci_device_header_t *pci_base_addr)
 {
     if (!manager->initialized)
@@ -22,18 +24,8 @@ void init_ahci_manager(ahci_manager_t *manager, pci_device_header_t *pci_base_ad
             ahci_configure_port(manager, i);
             manager->ports[i].buffer = request_page(&global_allocator);
             memset(manager->ports[i].buffer, 0, 0x1000);
-            ahci_read(manager, i, 0, 4, manager->ports[i].buffer);
-            printf("DRIVE %u:\n\n", i);
-            for (int k = 0; k < 1024; ++k)
-            {
-                printf("%c ", manager->ports[i].buffer[k]);
-                if (k % 40 == 0)
-                {
-                    printf("\n");
-                }
-            }
-            printf("\n", i);
         }
+        global_ahci_manager = manager;
     }
 }
 

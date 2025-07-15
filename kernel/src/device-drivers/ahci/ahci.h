@@ -177,6 +177,9 @@ void ahci_configure_port(ahci_manager_t *manager, int port_number);
 void ahci_start_cmd(ahci_manager_t *manager, int port_number);
 void ahci_end_cmd(ahci_manager_t *manager, int port_number);
 bool ahci_read(ahci_manager_t *manager, int port_number, uint64_t sector, uint32_t sector_count, void *buffer);
+bool ahci_write(ahci_manager_t *manager, int port_number, uint64_t sector, uint32_t sector_count, void *buffer);
+
+extern ahci_manager_t *global_ahci_manager;
 
 extern pci_device_header_t *ahci_device;
 
