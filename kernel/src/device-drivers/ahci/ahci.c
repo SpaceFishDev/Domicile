@@ -13,14 +13,13 @@ void init_ahci_manager(ahci_manager_t *manager, pci_device_header_t *pci_base_ad
         manager->initialized = 1;
         printf("AHCI Manager Initialized\n");
 
-        manager->ABAR = (hba_memory_t *)((pci_header_0_t *)pci_base_addr)->BAR5;
+        manager->ABAR = (hba_memory_t *)((uint64_t)((pci_header_0_t *)pci_base_addr)->BAR5);
 
         map_memory(global_page_table_manager, manager->ABAR, manager->ABAR, false);
         probe_ports(manager);
 
         for (int i = 0; i < manager->port_count; ++i)
         {
-            ahci_port_t port = manager->ports[i];
             ahci_configure_port(manager, i);
             manager->ports[i].buffer = request_page(&global_allocator);
             memset(manager->ports[i].buffer, 0, 0x1000);
@@ -31,6 +30,10 @@ void init_ahci_manager(ahci_manager_t *manager, pci_device_header_t *pci_base_ad
 
 void free_ahci_manager(ahci_manager_t *manager)
 {
+    for (uint64_t i = 0; i < manager->port_count; ++i)
+    {
+        free_page(&global_allocator, manager->ports[i].buffer);
+    }
 }
 
 ahci_port_type check_port_type(hba_port_t *port)
@@ -101,7 +104,7 @@ void probe_ports(ahci_manager_t *manager)
 
 ahci_port_t *get_port(ahci_manager_t *manager, int port_number)
 {
-    uint64_t base = manager->ports;
+    uint64_t base = (uint64_t)manager->ports;
     uint64_t addr = base + (sizeof(ahci_port_t) * port_number);
     return (ahci_port_t *)addr;
 }
@@ -114,7 +117,7 @@ void ahci_configure_port(ahci_manager_t *manager, int port_number)
     void *new_base = request_page(&global_allocator);
     port->hba_port->command_list_base = (uint32_t)(uint64_t)new_base;
     port->hba_port->command_list_base_upper = (uint32_t)((uint64_t)new_base >> 32);
-    memset((void *)port->hba_port->command_list_base, 0, 1024);
+    memset((void *)(uint64_t)port->hba_port->command_list_base, 0, 1024);
 
     void *fis_base = request_page(&global_allocator);
     port->hba_port->fis_base_addr = (uint32_t)(uint64_t)fis_base;
@@ -183,12 +186,12 @@ bool ahci_read(ahci_manager_t *manager, int port_number, uint64_t sector, uint32
     uint32_t sector_l = (uint32_t)sector;
     uint32_t sector_h = (uint32_t)(sector >> 32);
     port->hba_port->interrupt_status = (uint32_t)-1;
-    hba_command_header_t *cmd_header = (hba_command_header_t *)port->hba_port->command_list_base;
+    hba_command_header_t *cmd_header = (hba_command_header_t *)(uint64_t)port->hba_port->command_list_base;
     cmd_header->command_fis_length = sizeof(fis_reg_h2d_t) / sizeof(uint32_t);
     cmd_header->write = 0;
     cmd_header->prdt_length = 1;
 
-    hba_command_table_t *command_table = (hba_command_table_t *)(cmd_header->command_table_base_addr);
+    hba_command_table_t *command_table = (hba_command_table_t *)((uint64_t)cmd_header->command_table_base_addr);
     memset(command_table, 0, sizeof(hba_command_table_t) + (cmd_header->prdt_length - 1) * sizeof(hba_prdt_entry_t));
 
     command_table->prdt_entry[0].database_addr = (uint32_t)(uint64_t)buffer;
@@ -246,12 +249,12 @@ bool ahci_write(ahci_manager_t *manager, int port_number, uint64_t sector, uint3
     uint32_t sector_h = (uint32_t)(sector >> 32);
     port->hba_port->interrupt_status = (uint32_t)-1;
 
-    hba_command_header_t *cmd_header = (hba_command_header_t *)port->hba_port->command_list_base;
+    hba_command_header_t *cmd_header = (hba_command_header_t *)(uint64_t)port->hba_port->command_list_base;
     cmd_header->command_fis_length = sizeof(fis_reg_h2d_t) / sizeof(uint32_t); // in DWORDS
     cmd_header->write = 1;                                                     // <- This indicates it's a write
     cmd_header->prdt_length = 1;
 
-    hba_command_table_t *command_table = (hba_command_table_t *)(cmd_header->command_table_base_addr);
+    hba_command_table_t *command_table = (hba_command_table_t *)((uint64_t)cmd_header->command_table_base_addr);
     memset(command_table, 0, sizeof(hba_command_table_t) + (cmd_header->prdt_length - 1) * sizeof(hba_prdt_entry_t));
 
     command_table->prdt_entry[0].database_addr = (uint32_t)(uint64_t)buffer;

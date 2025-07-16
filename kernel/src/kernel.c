@@ -5,6 +5,7 @@
 #include "device-drivers/ps2/mouse.h"
 #include "kernel-trace/kernel_trace.h"
 #include "device-drivers/pit/pit.h"
+#include "filesystem/fat.h"
 
 void _start(boot_info_t *boot_info_ptr)
 {

@@ -170,7 +170,7 @@ void register_device(pci_device_t device)
 
 char *get_device_name(uint16_t vendor_id, uint16_t device_id)
 {
-    for (int i = 0; i < num_pci_device; ++i)
+    for (uint64_t i = 0; i < num_pci_device; ++i)
     {
         pci_device_t device = pci_devices[i];
         if (device.device_id == device_id && device.vendor_id == vendor_id)

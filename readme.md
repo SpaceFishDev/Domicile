@@ -15,3 +15,4 @@ Domicile is a 64 bit Operating System.
 - pci
 - kernel trace
 - more detailed panic screens
+- AHCI driver

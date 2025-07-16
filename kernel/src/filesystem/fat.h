@@ -11,7 +11,7 @@
 #define FAT_VOLUME_ID 0x08
 #define FAT_DIRECTORY 0x10
 #define FAT_ARCHIVE 0x20
-#define LFN FAT_READ_ONLY | FAT_HIDDEN | FAT_SYSTEM | FAT_VOLUME_ID
+#define LFN (FAT_READ_ONLY | FAT_HIDDEN | FAT_SYSTEM | FAT_VOLUME_ID)
 
 #define FAT32_CLUSTER_FREE 0x00000000
 #define FAT32_CLUSTER_RESERVED 0x00000001
@@ -125,6 +125,7 @@ typedef struct
     uint64_t sectors_per_fat;
     uint64_t root_cluster;
     uint32_t **FAT;
+    fat32_directory_t *root_dir;
 } fat32_manager_t;
 
 typedef enum
@@ -142,6 +143,24 @@ typedef struct
     uint32_t next_cluster;
 } fat_entry_descriptor_t;
 
+typedef enum
+{
+    F_READ_WRITE,
+    F_READ_ONLY,
+    F_DIRECTORY,
+} file_type;
+
+typedef struct fs_file
+{
+    char name[8];
+    char extension[3];
+    uint64_t file_size;
+    uint64_t base_cluster;
+    file_type type;
+    struct fs_file *subdirs; // only used if type==DIRECTORY
+    fat32_directory_t f32_dir_entry;
+} fs_file_t;
+
 void fat_read_bpb(bios_parameter_block_t *bpb, int drive_no);
 void fat_read_f32_ext_boot_record(fat32_extended_boot_record_t *extended_boot_record, int drive_no);
 void fat_read_fs_info(fs_info_t *fs_info, fat32_extended_boot_record_t *extended_boot_record, int drive_no);
@@ -151,5 +170,7 @@ void init_fat32_manager(fat32_manager_t *manager, int drive_no);
 uint32_t cluster_to_sector(uint32_t cluster, fat32_manager_t *manager);
 bool is_lfn(fat32_directory_t *dir);
 void find_directory(fat32_manager_t *manager, char *file_name);
+fs_file_t get_file(char *name, fat32_directory_t *dir);
+char *parse_file_name(char *name);
 
 #endif

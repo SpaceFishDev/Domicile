@@ -182,7 +182,6 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     kernel_info->ahci_manager = manager;
 
     fat32_manager_t *f32_manager = malloc(sizeof(fat32_manager_t));
-    printf("Free Mem: %uMB\n", (get_free_memory() / 1024) / 1024);
     init_fat32_manager(f32_manager, 0);
 
     dump_trace();

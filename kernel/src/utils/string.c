@@ -260,3 +260,20 @@ int sprintf(char *out, char *fmt, ...)
     va_end(args);
     return written;
 }
+
+char to_upper(char c)
+{
+    if (c >= 'a' && c <= 'z')
+    {
+        return (c - 'a') + 'A';
+    }
+    return c;
+}
+
+void str_to_upper(char *str, uint64_t len)
+{
+    for (uint64_t i = 0; i < len; ++i)
+    {
+        str[i] = to_upper(str[i]);
+    }
+}

@@ -10,7 +10,7 @@ void init_allocator(kernel_allocator_t *allocator)
     allocator->heap_buffer = request_pages(&global_allocator, 32);
     allocator->block_buffer_size = 4096;
     allocator->blocks = request_page(&global_allocator);
-    for (int i = 0; i < 4096; i++)
+    for (uint64_t i = 0; i < 4096; i++)
     {
         ((uint8_t *)allocator->blocks)[i] = 0;
         ((uint8_t *)allocator->heap_buffer)[i] = 0;
@@ -32,7 +32,7 @@ void increase_buffer_size(void **buffer, uint64_t *buffer_size)
         return;
     }
     uint8_t *buf = *(uint8_t **)buffer;
-    for (int i = 0; i < *buffer_size; ++i)
+    for (uint64_t i = 0; i < *buffer_size; ++i)
     {
         temp[i] = buf[i];
     }
@@ -43,11 +43,11 @@ void increase_buffer_size(void **buffer, uint64_t *buffer_size)
 
 void increase_block_buffer(kernel_allocator_t *allocator)
 {
-    increase_buffer_size(&allocator->blocks, &allocator->block_buffer_size);
+    increase_buffer_size((void **)&allocator->blocks, &allocator->block_buffer_size);
 }
 void increase_heap_buffer(kernel_allocator_t *allocator)
 {
-    increase_buffer_size(&allocator->heap_buffer, &allocator->buffer_size);
+    increase_buffer_size((void **)&allocator->heap_buffer, &allocator->buffer_size);
 }
 
 void add_block(mem_block_t block)
@@ -110,7 +110,7 @@ void *malloc(uint64_t size)
 }
 void free(void *ptr)
 {
-    for (int i = 0; i < global_kmalloc.num_block; ++i)
+    for (uint64_t i = 0; i < global_kmalloc.num_block; ++i)
     {
         if (global_kmalloc.blocks[i].ptr == ptr)
         {
@@ -122,7 +122,7 @@ void free(void *ptr)
 void *realloc(void *ptr, uint64_t size)
 {
     mem_block_t block;
-    int i = 0;
+    uint64_t i = 0;
     for (i = 0; i < global_kmalloc.num_block; ++i)
     {
         if (global_kmalloc.blocks[i].ptr == ptr)
@@ -138,7 +138,7 @@ void *realloc(void *ptr, uint64_t size)
     uint8_t *buffer = malloc(size);
     if (block.ptr != 0)
     {
-        for (int k = 0; k < block.size; ++k)
+        for (uint64_t k = 0; k < block.size; ++k)
         {
             buffer[k] = ((uint8_t *)block.ptr)[k];
         }

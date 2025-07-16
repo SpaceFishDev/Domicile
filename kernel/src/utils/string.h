@@ -12,3 +12,5 @@ void itoa_hex(uint64_t num, char *buffer);
 void memset(void *start, uint8_t value, uint64_t num);
 int sprintf(char *str, char *fmt, ...);
 int vsprintf(char *out, char *fmt, va_list args);
+void str_to_upper(char *str, uint64_t len);
+char to_upper(char c);
