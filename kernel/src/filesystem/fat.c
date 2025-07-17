@@ -137,8 +137,10 @@ file_type get_file_type(uint8_t attributes)
 
 void free_path(fs_path_t *path)
 {
-    for (int i = 0; i < path->num_dir; ++i)
+    for (uint64_t i = 0; i < path->num_dir; ++i)
+    {
         free(path->dirs[i]);
+    }
     free(path->dirs);
     free(path->file_name);
 }
@@ -157,7 +159,7 @@ fs_file_t get_file(char *name, fat32_directory_t *directory)
         {
             continue;
         }
-        if (cmp_file_names(dir.file_name, new_name))
+        if (cmp_file_names((char *)dir.file_name, new_name))
         {
             for (int j = 0; j < 8; ++j)
             {
@@ -235,6 +237,13 @@ fs_path_t parse_path(char *path)
     fp.dirs = split;
     fp.num_dir = (n > 1) ? n - 1 : 0;
     fp.file_name = (n > 0) ? split[n - 1] : 0;
+
+    if (strlen(fp.file_name) == 0 && fp.num_dir > 0)
+    {
+        fp.file_name = split[fp.num_dir - 1];
+        fp.num_dir -= 1;
+    }
+
     return fp;
 }
 
@@ -293,7 +302,7 @@ fat32_directory_t *read_dir(fat32_manager_t *manager, fs_file_t *file)
 void read_file_from_path(fat32_manager_t *manager, char *path, char *buffer)
 {
     fs_file_t file = get_file_from_path(manager, path);
-    read_file(manager, &file, buffer, file.file_size);
+    read_file(manager, &file, (uint8_t *)buffer, file.file_size);
 }
 
 fs_file_t get_file_from_path(fat32_manager_t *manager, char *path)
@@ -311,65 +320,38 @@ fs_file_t get_file_from_path(fat32_manager_t *manager, char *path)
         }
         cur_dir_data = read_dir(manager, &current_dir);
     }
-
     fs_file_t result = get_file(fp.file_name, cur_dir_data);
+    if (result.base_cluster == 0)
+    {
+        result = get_dir(cur_dir_data, fp.file_name);
+    }
     free_path(&fp);
     return result;
 }
-
-void find_subdirs_recursive(fat32_manager_t *manager, fs_file_t *file)
+uint64_t get_files_in_dir(fat32_manager_t *manager, fs_file_t *directory, char **files)
 {
-    find_subdirs(manager, file);
-    if (file->num_subdir == 0)
+    fat32_directory_t *dirs = read_dir(manager, directory);
+    uint64_t num_file;
+    num_file = 0;
+    for (uint16_t i = 0; i < 16; ++i)
     {
-        return;
-    }
-    for (uint64_t i = 0; i < file->num_subdir; ++i)
-    {
-        find_subdirs_recursive(manager, &file->subdirs[i]);
-    }
-}
-
-void find_subdirs(fat32_manager_t *manager, fs_file_t *file)
-{
-    fat32_directory_t *dir = read_dir(manager, file);
-    uint64_t num_entry = file->file_size / sizeof(fat32_directory_t);
-    uint64_t num_dir = 0;
-    for (uint64_t i = 0; i < num_entry; ++i)
-    {
-        uint8_t file_attr = dir[i].attributes;
-        file_type type = get_file_type(file_attr);
-        if (type == F_DIRECTORY && dir[i].file_name[0] != '.')
+        num_file++;
+        if (dirs[i].cluster_low == 0)
         {
-            num_dir++;
+            break;
         }
     }
-    file->subdirs = malloc(sizeof(fs_file_t *) * num_dir);
-    file->num_subdir = num_dir;
-    uint64_t n = 0;
-    for (uint64_t i = 0; i < num_entry; ++i)
+    for (int i = 0; i < num_file; ++i)
     {
-        file_type type = get_file_type(dir[i].attributes);
-        if (type == F_DIRECTORY)
+        char *name = malloc(12);
+        name[11] = 0;
+        for (int j = 0; j < 11; ++j)
         {
-            if (dir[i].file_name[0] != '.')
-            {
-                char name_terminated[12];
-                char *fn = dir[i].file_name;
-                int i = 0;
-                while (*fn != ' ')
-                {
-                    name_terminated[i] = *fn;
-                    ++i;
-                    ++fn;
-                }
-                name_terminated[i] = 0;
-                fs_file_t directory = get_dir(&file->f32_dir_entry, name_terminated);
-                file->subdirs[n] = directory;
-                ++n;
-            }
+            name[j] = dirs[i].file_name[j];
         }
+        files[i] = name;
     }
+    return num_file;
 }
 
 fs_file_t get_dir(fat32_directory_t *dir, char *name)
@@ -396,7 +378,7 @@ fs_file_t get_dir(fat32_directory_t *dir, char *name)
         //     current_byte += sizeof(fat32_directory_t);
         //     continue;
         // }
-        if (cmp_file_names(dir.file_name, name))
+        if (cmp_file_names((char *)dir.file_name, name))
         {
             file.base_cluster = get_cluster(dir.cluster_low, dir.cluster_high);
             for (int i = 0; name[i] != ' '; ++i)
@@ -477,13 +459,4 @@ fat_entry_descriptor_t parse_fat_entry(uint32_t raw)
         return (fat_entry_descriptor_t){FAT_EOF, 0};
     else
         return (fat_entry_descriptor_t){FAT_DATA_CLUSTER, raw};
-}
-
-void free_file(fs_file_t *file)
-{
-    for (uint64_t i = 0; i < file->num_subdir; ++i)
-    {
-        free_file(&file->subdirs[i]);
-    }
-    free(file->subdirs);
 }

@@ -151,16 +151,11 @@ typedef struct fs_file
 
 typedef struct
 {
-    fs_file_t *files;
-    uint64_t num_file;
-} root_directory_t;
-
-typedef struct
-{
     char **dirs;
     uint64_t num_dir;
     char *file_name;
 } fs_path_t;
+
 typedef struct
 {
     bios_parameter_block_t *bpb;
@@ -172,7 +167,6 @@ typedef struct
     uint64_t root_cluster;
     uint32_t **FAT;
     fat32_directory_t *root_dir;
-    root_directory_t root_directory_struct;
 } fat32_manager_t;
 
 void fat_read_bpb(bios_parameter_block_t *bpb, int drive_no);
@@ -183,16 +177,15 @@ void init_fat32_manager(fat32_manager_t *manager, int drive_no);
 
 uint32_t cluster_to_sector(uint32_t cluster, fat32_manager_t *manager);
 bool is_lfn(fat32_directory_t *dir);
-void find_directory(fat32_manager_t *manager, char *file_name);
 fs_file_t get_file(char *name, fat32_directory_t *dir);
 char *parse_file_name(char *name);
-uint64_t read_file(fat32_manager_t *manager, fs_file_t *file, uint8_t *buffer, uint64_t size);
+
 fs_file_t get_dir(fat32_directory_t *dir, char *name);
-void find_subdirs(fat32_manager_t *manager, fs_file_t *file);
-void populate_root(root_directory_t *root_dir, fat32_manager_t *manager);
-void find_subdirs_recursive(fat32_manager_t *manager, fs_file_t *file);
 fs_file_t get_file_from_path(fat32_manager_t *manager, char *path);
-void free_file(fs_file_t *file);
+
+uint64_t read_file(fat32_manager_t *manager, fs_file_t *file, uint8_t *buffer, uint64_t size);
 void read_file_from_path(fat32_manager_t *manager, char *path, char *buffer);
+
+uint64_t get_files_in_dir(fat32_manager_t *manager, fs_file_t *directory, char **files);
 
 #endif
