@@ -1,0 +1,4 @@
+abcdefg
+HAHA
+TEST.txt inside of 2 directories
+maybe itll workkk

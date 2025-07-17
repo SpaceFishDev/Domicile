@@ -35,7 +35,7 @@ SIZE_MB=100
 disk: 
 	dd if=/dev/zero of="$(IMG)" bs=1M count=$(SIZE_MB)
 	mkfs.vfat -F 32 "$(IMG)"
-	mcopy -i disk.img ./disk_contents/* ::/
+	mcopy -i disk.img -s ./disk_contents/* ::/
 
 clean:
 	rm $(OBJS)
@@ -60,8 +60,8 @@ setup:
 	@mkdir $(OBJDIR)
 
 buildimg:
-	dd if=/dev/zero of=$(BUILDDIR)/$(OSNAME).img bs=512 count=93750
-	mformat -i $(BUILDDIR)/$(OSNAME).img ::
+	dd if=/dev/zero of=$(BUILDDIR)/$(OSNAME).img bs=512 count=262144
+	mformat -F -i $(BUILDDIR)/$(OSNAME).img ::
 	mmd -i $(BUILDDIR)/$(OSNAME).img ::/EFI
 	mmd -i $(BUILDDIR)/$(OSNAME).img ::/EFI/BOOT
 	mcopy -i $(BUILDDIR)/$(OSNAME).img $(BOOTEFI) ::/EFI/BOOT

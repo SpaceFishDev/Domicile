@@ -75,6 +75,10 @@ mem_block_t split_block(uint64_t block_index, uint64_t size)
 
 void *malloc(uint64_t size)
 {
+    if (size == 0)
+    {
+        return (void *)0;
+    }
     for (uint64_t i = 0; i < global_kmalloc.num_block; ++i)
     {
         if (global_kmalloc.blocks[i].used == false)

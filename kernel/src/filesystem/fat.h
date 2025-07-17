@@ -115,19 +115,6 @@ typedef struct __attribute__((packed))
     uint32_t size;
 } fat32_directory_t;
 
-typedef struct
-{
-    bios_parameter_block_t *bpb;
-    fat32_extended_boot_record_t *extended_boot_record;
-    fs_info_t *fs_info;
-    uint8_t drive_no;
-    uint64_t sectors_per_cluster;
-    uint64_t sectors_per_fat;
-    uint64_t root_cluster;
-    uint32_t **FAT;
-    fat32_directory_t *root_dir;
-} fat32_manager_t;
-
 typedef enum
 {
     FAT_FREE,
@@ -152,14 +139,41 @@ typedef enum
 
 typedef struct fs_file
 {
-    char name[8];
-    char extension[3];
+    char name[9];
+    char extension[4];
     uint64_t file_size;
     uint64_t base_cluster;
     file_type type;
     struct fs_file *subdirs; // only used if type==DIRECTORY
+    uint64_t num_subdir;
     fat32_directory_t f32_dir_entry;
 } fs_file_t;
+
+typedef struct
+{
+    fs_file_t *files;
+    uint64_t num_file;
+} root_directory_t;
+
+typedef struct
+{
+    char **dirs;
+    uint64_t num_dir;
+    char *file_name;
+} fs_path_t;
+typedef struct
+{
+    bios_parameter_block_t *bpb;
+    fat32_extended_boot_record_t *extended_boot_record;
+    fs_info_t *fs_info;
+    uint8_t drive_no;
+    uint64_t sectors_per_cluster;
+    uint64_t sectors_per_fat;
+    uint64_t root_cluster;
+    uint32_t **FAT;
+    fat32_directory_t *root_dir;
+    root_directory_t root_directory_struct;
+} fat32_manager_t;
 
 void fat_read_bpb(bios_parameter_block_t *bpb, int drive_no);
 void fat_read_f32_ext_boot_record(fat32_extended_boot_record_t *extended_boot_record, int drive_no);
@@ -172,5 +186,13 @@ bool is_lfn(fat32_directory_t *dir);
 void find_directory(fat32_manager_t *manager, char *file_name);
 fs_file_t get_file(char *name, fat32_directory_t *dir);
 char *parse_file_name(char *name);
+uint64_t read_file(fat32_manager_t *manager, fs_file_t *file, uint8_t *buffer, uint64_t size);
+fs_file_t get_dir(fat32_directory_t *dir, char *name);
+void find_subdirs(fat32_manager_t *manager, fs_file_t *file);
+void populate_root(root_directory_t *root_dir, fat32_manager_t *manager);
+void find_subdirs_recursive(fat32_manager_t *manager, fs_file_t *file);
+fs_file_t get_file_from_path(fat32_manager_t *manager, char *path);
+void free_file(fs_file_t *file);
+void read_file_from_path(fat32_manager_t *manager, char *path, char *buffer);
 
 #endif
