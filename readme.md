@@ -1,7 +1,7 @@
 # DOMCICLE
 Domicile is a 64 bit Operating System.
 
-# Current Progress:
+# Current Progress (Updated as I write features):
 - Paging.
 - Page tables.
 - Basic text renderer.
