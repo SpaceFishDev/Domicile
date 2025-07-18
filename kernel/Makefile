@@ -26,7 +26,9 @@ OBJS = $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SRC))
 OBJS += $(patsubst $(SRCDIR)/%.asm, $(OBJDIR)/%_asm.o, $(ASMSRC))
 DIRS = $(wildcard $(SRCDIR)/*)
 
-all: kernel buildimg
+all: build_run
+
+build_run: kernel buildimg disk run
 
 FOLDER=./disk_contents
 IMG="disk.img"

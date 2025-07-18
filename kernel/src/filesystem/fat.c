@@ -89,6 +89,13 @@ bool cmp_file_names(char *a, char *b)
             return false;
         }
     }
+    for (int i = 8; i < 11; ++i)
+    {
+        if (a[i] != b[i])
+        {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -243,7 +250,7 @@ fs_path_t parse_path(char *path)
         fp.file_name = split[fp.num_dir - 1];
         fp.num_dir -= 1;
     }
-
+    free(split);
     return fp;
 }
 
@@ -308,7 +315,7 @@ void read_file_from_path(fat32_manager_t *manager, char *path, char *buffer)
 fs_file_t get_file_from_path(fat32_manager_t *manager, char *path)
 {
     fs_path_t fp = parse_path(path);
-    fat32_directory_t *cur_dir_data = manager->root_dir;
+    fat32_directory_t *cur_dir_data = get_root_dir(manager);
     fs_file_t current_dir;
     for (uint64_t i = 0; i < fp.num_dir; ++i)
     {
@@ -459,4 +466,206 @@ fat_entry_descriptor_t parse_fat_entry(uint32_t raw)
         return (fat_entry_descriptor_t){FAT_EOF, 0};
     else
         return (fat_entry_descriptor_t){FAT_DATA_CLUSTER, raw};
+}
+
+uint32_t find_free_cluster(fat32_manager_t *manager)
+{
+    for (uint32_t i = FAT32_CLUSTER_FIRST_VALID; i <= FAT32_CLUSTER_LAST_VALID; ++i)
+    {
+        fat_entry_descriptor_t desc = get_fat_descriptor(manager, i);
+        if (desc.type == FAT_FREE)
+            return i;
+    }
+    return 0;
+}
+uint32_t find_next_free_cluster(fat32_manager_t *manager, uint32_t current_cluster)
+{
+    for (uint32_t i = FAT32_CLUSTER_FIRST_VALID; i <= FAT32_CLUSTER_LAST_VALID; ++i)
+    {
+        fat_entry_descriptor_t desc = get_fat_descriptor(manager, i);
+        if (desc.type == FAT_FREE)
+            return i;
+    }
+    for (uint32_t i = FAT32_CLUSTER_FIRST_VALID; i <= current_cluster; ++i)
+    {
+        fat_entry_descriptor_t desc = get_fat_descriptor(manager, i);
+        if (desc.type == FAT_FREE)
+            return i;
+    }
+    return 0;
+}
+
+fat32_directory_t make_dir_entry(char *name, uint32_t cluster, uint32_t size, uint8_t attrib)
+{
+    fat32_directory_t entry = {0};
+    memset(entry.file_name, ' ', 11);
+    char *n = parse_file_name(name);
+    memcpy(entry.file_name, n, 11);
+    free(n);
+    entry.attributes = attrib;
+    entry.cluster_low = cluster & 0xFFFF;
+    entry.cluster_high = (cluster >> 16) & 0xFFFF;
+    entry.size = size;
+    return entry;
+}
+
+fs_file_t make_file(char *name, file_type type, uint64_t size, uint32_t cluster)
+{
+    fs_file_t file;
+    char *n = parse_file_name(name);
+    for (int i = 0; i < 11; ++i)
+    {
+        if (n[i] == ' ')
+        {
+            n[i] = 0;
+            break;
+        }
+        file.name[i] = n[i];
+    }
+    if (type != F_DIRECTORY)
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            file.extension[i] = n[i + 8];
+        }
+    }
+    free(n);
+    file.extension[3] = 0;
+    file.base_cluster = cluster;
+    file.type = type;
+    file.file_size = size;
+    uint8_t attr = 0;
+    if (file.type == F_DIRECTORY)
+    {
+        attr = FAT_DIRECTORY;
+    }
+    else
+    {
+        attr = FAT_ARCHIVE;
+    }
+    file.f32_dir_entry = make_dir_entry(name, cluster, file.file_size, attr);
+    return file;
+}
+
+bool file_exists(fat32_manager_t *manager, char *path)
+{
+    fs_file_t f = get_file_from_path(manager, path);
+    return f.base_cluster != 0;
+}
+
+void flush_fat_table(fat32_manager_t *manager)
+{
+    uint64_t sectors = manager->sectors_per_fat;
+    uint32_t sector = manager->bpb->reserved_sectors;
+
+    for (int i = 0; i < manager->bpb->no_fat; ++i)
+    {
+        ahci_write(global_ahci_manager, manager->drive_no, sector, sectors, (void *)manager->FAT[i]);
+        sector += sectors;
+    }
+}
+
+void clear_fat_of_file(fat32_manager_t *manager, fs_file_t *file)
+{
+    uint64_t cluster = file->base_cluster;
+    fat_entry_descriptor_t desc = get_fat_descriptor(manager, cluster);
+    while (1)
+    {
+        manager->FAT[0][cluster] = FAT32_CLUSTER_FREE & FAT32_CLUSTER_MASK;
+        if (desc.type == FAT_EOF)
+        {
+            break;
+        }
+        cluster = desc.next_cluster;
+        desc = get_fat_descriptor(manager, cluster);
+    }
+    flush_fat_table(manager);
+}
+
+void remove_file_entry(fat32_manager_t *manager, uint64_t directory_cluster, fat32_directory_t *dir, char *name)
+{
+    int entry_index = -1;
+    char *n = parse_file_name(name);
+    for (int i = 0; i < 16; ++i)
+    {
+        if (cmp_file_names(n, dir[i].file_name))
+        {
+            entry_index = i;
+            break;
+        }
+        else
+        {
+            printf("N: %s\n", n);
+            printf("DIR: ");
+            for (int j = 0; j < 11; ++j)
+            {
+                printf("%c", dir[i].file_name[j]);
+            }
+            printf("\n");
+        }
+    }
+    if (entry_index == -1)
+    {
+        printf("NOT FOUND\n");
+        return;
+    }
+    fat32_directory_t *new_entries = malloc(512);
+    for (int i = 0; i < entry_index; ++i)
+    {
+        new_entries[i] = dir[i];
+    }
+    int j = entry_index;
+    for (int i = entry_index + 1; i < 16; ++i)
+    {
+        new_entries[j] = dir[i];
+        ++j;
+    }
+    uint64_t sector = cluster_to_sector(directory_cluster, manager);
+    ahci_write(global_ahci_manager, manager->drive_no, sector, 1, new_entries);
+    free(n);
+    free(new_entries);
+}
+
+void remove_file(fat32_manager_t *manager, fs_file_t *dir, char *name)
+{
+    fat32_directory_t *dir_entries = read_dir(manager, dir);
+    fs_file_t file = get_file(name, dir_entries);
+    clear_fat_of_file(manager, &file);
+    uint64_t dir_cluster = dir->base_cluster;
+    remove_file_entry(manager, dir_cluster, dir_entries, name);
+}
+
+void remove_file_from_root(fat32_manager_t *manager, char *name)
+{
+    fs_file_t root_file;
+    root_file.base_cluster = manager->root_cluster;
+    root_file.file_size = 512;
+    remove_file(manager, &root_file, name);
+}
+
+void remove_file_from_path(fat32_manager_t *manager, char *path)
+{
+    fs_path_t fp = parse_path(path);
+    fat32_directory_t *root = get_root_dir(manager);
+    if (fp.num_dir == 0)
+    {
+        remove_file_from_root(manager, fp.file_name);
+        free_path(&fp);
+        return;
+    }
+    fs_file_t f = get_dir(root, fp.dirs[0]);
+    if (fp.num_dir == 1)
+    {
+        remove_file(manager, &f, fp.file_name);
+        free_path(&fp);
+        return;
+    }
+    for (uint64_t i = 1; i < fp.num_dir; ++i)
+    {
+        fat32_directory_t *entry = read_dir(manager, &f);
+        f = get_dir(entry, fp.dirs[i]);
+        free(entry);
+    }
+    remove_file(manager, &f, fp.file_name);
+    free_path(&fp);
 }

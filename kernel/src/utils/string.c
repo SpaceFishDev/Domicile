@@ -277,3 +277,18 @@ void str_to_upper(char *str, uint64_t len)
         str[i] = to_upper(str[i]);
     }
 }
+
+char *strcat(char *dest, const char *src)
+{
+    char *ptr = dest;
+
+    while (*ptr != '\0')
+        ++ptr;
+
+    while (*src != '\0')
+        *ptr++ = *src++;
+
+    *ptr = '\0'; // Null-terminate
+
+    return dest;
+}

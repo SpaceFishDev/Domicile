@@ -14,3 +14,4 @@ int sprintf(char *str, char *fmt, ...);
 int vsprintf(char *out, char *fmt, va_list args);
 void str_to_upper(char *str, uint64_t len);
 char to_upper(char c);
+char *strcat(char *dest, const char *src);

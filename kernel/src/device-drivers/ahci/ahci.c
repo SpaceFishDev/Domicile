@@ -245,27 +245,49 @@ bool ahci_write(ahci_manager_t *manager, int port_number, uint64_t sector, uint3
         return false;
     }
 
+    // Find a free command slot
+    uint32_t slots = port->hba_port->command_issue | port->hba_port->sata_active;
+    int slot = 0;
+    for (; slot < 32; ++slot)
+    {
+        if ((slots & (1 << slot)) == 0)
+            break;
+    }
+    if (slot == 32)
+    {
+        // No free slot available
+        return false;
+    }
+
     uint32_t sector_l = (uint32_t)sector;
     uint32_t sector_h = (uint32_t)(sector >> 32);
+
+    // Clear interrupt status
     port->hba_port->interrupt_status = (uint32_t)-1;
 
+    // Get command header for the selected slot
     hba_command_header_t *cmd_header = (hba_command_header_t *)(uint64_t)port->hba_port->command_list_base;
+    cmd_header += slot;
+
     cmd_header->command_fis_length = sizeof(fis_reg_h2d_t) / sizeof(uint32_t); // in DWORDS
-    cmd_header->write = 1;                                                     // <- This indicates it's a write
+    cmd_header->write = 1;                                                     // write operation
     cmd_header->prdt_length = 1;
 
-    hba_command_table_t *command_table = (hba_command_table_t *)((uint64_t)cmd_header->command_table_base_addr);
+    // Get command table
+    hba_command_table_t *command_table = (hba_command_table_t *)(uint64_t)cmd_header->command_table_base_addr;
     memset(command_table, 0, sizeof(hba_command_table_t) + (cmd_header->prdt_length - 1) * sizeof(hba_prdt_entry_t));
 
+    // Setup PRDT entry
     command_table->prdt_entry[0].database_addr = (uint32_t)(uint64_t)buffer;
     command_table->prdt_entry[0].database_addr_upper = (uint32_t)((uint64_t)buffer >> 32);
     command_table->prdt_entry[0].byte_count = (sector_count << 9) - 1; // 512 bytes per sector
     command_table->prdt_entry[0].interrupt_on_completion = 1;
 
+    // Setup command FIS
     fis_reg_h2d_t *command_fis = (fis_reg_h2d_t *)(&command_table->command_fis);
     command_fis->fis_type = FIS_TYPE_REG_H2D;
-    command_fis->cmd_control = 1;                // This is a command
-    command_fis->command = ATA_CMD_WRITE_DMA_EX; // <- This is the command for write
+    command_fis->cmd_control = 1;                // Command
+    command_fis->command = ATA_CMD_WRITE_DMA_EX; // Write command
 
     command_fis->lba0 = (uint8_t)sector_l;
     command_fis->lba1 = (uint8_t)(sector_l >> 8);
@@ -278,16 +300,20 @@ bool ahci_write(ahci_manager_t *manager, int port_number, uint64_t sector, uint3
     command_fis->count_low = sector_count & 0xFF;
     command_fis->count_high = (sector_count >> 8) & 0xFF;
 
-    port->hba_port->command_issue = 1;
+    // Issue command by setting bit for this slot
+    port->hba_port->command_issue |= (1 << slot);
 
     // Wait for command to complete
     while (true)
     {
-        if ((port->hba_port->command_issue == 0))
+        if ((port->hba_port->command_issue & (1 << slot)) == 0)
             break;
-        if ((port->hba_port->interrupt_status & HBA_PXIS_TFES))
+
+        if (port->hba_port->interrupt_status & HBA_PXIS_TFES)
         {
-            return false; // failure
+            // Clear error bit before returning
+            port->hba_port->interrupt_status = HBA_PXIS_TFES;
+            return false; // Failure
         }
     }
 

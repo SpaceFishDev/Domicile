@@ -187,5 +187,16 @@ uint64_t read_file(fat32_manager_t *manager, fs_file_t *file, uint8_t *buffer, u
 void read_file_from_path(fat32_manager_t *manager, char *path, char *buffer);
 
 uint64_t get_files_in_dir(fat32_manager_t *manager, fs_file_t *directory, char **files);
+fat32_directory_t make_dir_entry(char *name, uint32_t cluster, uint32_t size, uint8_t attrib);
+fs_file_t make_file(char *name, file_type type, uint64_t size, uint32_t cluster);
+
+bool file_exists(fat32_manager_t *manager, char *path);
+
+void flush_fat_table(fat32_manager_t *manager);
+void clear_fat_of_file(fat32_manager_t *manager, fs_file_t *file);
+void remove_file_entry(fat32_manager_t *manager, uint64_t directory_cluster, fat32_directory_t *dir, char *name);
+void remove_file(fat32_manager_t *manager, fs_file_t *dir, char *name);
+void remove_file_from_root(fat32_manager_t *manager, char *name);
+void remove_file_from_path(fat32_manager_t *manager, char *path);
 
 #endif

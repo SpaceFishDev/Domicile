@@ -181,19 +181,17 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     }
     kernel_info->ahci_manager = manager;
 
-    fat32_manager_t *f32_manager = malloc(sizeof(fat32_manager_t));
-    init_fat32_manager(f32_manager, 0);
+    fat32_manager_t *f32 = malloc(sizeof(fat32_manager_t));
+    init_fat32_manager(f32, 0);
 
-    fs_file_t f = get_file_from_path(f32_manager, "testdir/test/");
-    if (f.base_cluster != 0)
-    {
-        char *buf[16];
-        uint64_t num_file = get_files_in_dir(f32_manager, &f, buf);
-        for (int i = 0; i < num_file; ++i)
-        {
-            printf("%s\n", buf[i]);
-        }
-    }
+    // fs_file_t f = get_file_from_path(f32, "testdir/test/test.txt");
+    // char *buffer = malloc(f.file_size + 1);
+    // buffer[f.file_size] = 0;
+    // read_file_from_path(f32, "testdir/test/test.txt", buffer);
+    // printf("%s\n", buffer);
+
+    remove_file_from_path(f32, "testdir/test2.txt");
+
     dump_trace();
     printf("Kernel initialized successfully\n");
 
