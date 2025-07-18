@@ -606,7 +606,6 @@ void remove_file_entry(fat32_manager_t *manager, uint64_t directory_cluster, fat
     }
     if (entry_index == -1)
     {
-        printf("NOT FOUND\n");
         return;
     }
     fat32_directory_t *new_entries = malloc(512);
@@ -667,5 +666,125 @@ void remove_file_from_path(fat32_manager_t *manager, char *path)
         free(entry);
     }
     remove_file(manager, &f, fp.file_name);
+    free_path(&fp);
+}
+
+void write_file_entry(fat32_manager_t *manager, fat32_directory_t *entry, fs_file_t *directory)
+{
+    uint64_t cluster = directory->base_cluster;
+    uint64_t num_entry = 0;
+    fat32_directory_t *dir = read_dir(manager, directory);
+    for (int i = 0; i < 16; ++i)
+    {
+        if (dir->file_name[0] == 0)
+        {
+            num_entry = i;
+            break;
+        }
+    }
+    dir[num_entry] = *entry;
+    uint64_t sector = cluster_to_sector(cluster, manager);
+    ahci_write(global_ahci_manager, manager->drive_no, sector, 1, (void *)dir);
+    free(dir);
+}
+
+uint64_t write_file_fat(fat32_manager_t *manager, uint64_t size)
+{
+    uint64_t base_cluster = find_free_cluster(manager);
+
+    uint64_t cluster_size = manager->sectors_per_cluster * 512;
+    uint64_t clusters = (size / cluster_size) + 1;
+    uint64_t cluster = base_cluster;
+    for (int i = 0; i < clusters - 1; ++i)
+    {
+        uint32_t next = find_next_free_cluster(manager, cluster);
+        manager->FAT[0][cluster] = next;
+        cluster = next;
+    }
+    manager->FAT[0][cluster] = FAT32_CLUSTER_EOF_START;
+    flush_fat_table(manager);
+    return base_cluster;
+}
+
+uint64_t write_file_contents(fat32_manager_t *manager, char *buffer, uint64_t size, uint64_t base_cluster)
+{
+    uint64_t sector = cluster_to_sector(base_cluster, manager);
+    char *current_section = buffer;
+    uint64_t cluster_size = manager->sectors_per_cluster * 512;
+    uint64_t clusters = (size / cluster_size) + 1;
+    uint64_t cluster = base_cluster;
+    for (uint64_t i = 0; i < clusters; ++i)
+    {
+        fat_entry_descriptor_t desc = get_fat_descriptor(manager, cluster);
+        uint64_t sector = cluster_to_sector(cluster, manager);
+        uint64_t sectors_per_cluster = manager->sectors_per_cluster;
+        ahci_write(global_ahci_manager, manager->drive_no, sector, sectors_per_cluster, current_section);
+        current_section += cluster_size;
+        cluster = desc.next_cluster;
+        if (desc.type == FAT_EOF)
+        {
+            break;
+        }
+    }
+    return base_cluster;
+}
+
+void create_file(fat32_manager_t *manager, fs_file_t *directory, fs_file_t *file, char *name, uint64_t size, bool is_dir)
+{
+    uint64_t base_cluster = write_file_fat(manager, size);
+    fat32_directory_t dir_entry = make_dir_entry(name, base_cluster, size, is_dir ? FAT_DIRECTORY : FAT_ARCHIVE);
+    write_file_entry(manager, &dir_entry, directory);
+    file->base_cluster = base_cluster;
+    char *n = parse_file_name(name);
+    int len = 0;
+    for (int i = 0; i < 11; ++i)
+    {
+        file->name[i] = n[i];
+        if (n[i] == ' ')
+        {
+            len = i;
+            break;
+        }
+    }
+    file->name[len] = 0;
+    for (int i = 0; i < 3; ++i)
+    {
+        file->extension[i] = n[i + 8];
+    }
+    file->extension[3] = 0;
+    file->file_size = size;
+    file->type = is_dir ? F_DIRECTORY : F_READ_WRITE;
+}
+
+void write_file(fat32_manager_t *manager, fs_file_t *file, char *buffer)
+{
+    uint64_t size = file->file_size;
+    bool is_dir = file->type == F_DIRECTORY;
+    write_file_contents(manager, buffer, size, file->base_cluster);
+}
+
+void write_file_from_path(fat32_manager_t *manager, char *path, char *buffer, uint64_t size)
+{
+    fs_path_t fp = parse_path(path);
+    if (fp.num_dir == 0)
+    {
+        fs_file_t root_file;
+        root_file.base_cluster = manager->root_cluster;
+        root_file.file_size = 512;
+        fs_file_t f;
+        create_file(manager, &root_file, &f, fp.file_name, size, false);
+        write_file(manager, &f, buffer);
+        return;
+    }
+    fs_file_t dir = get_dir(get_root_dir(manager), fp.dirs[0]);
+    for (int i = 1; i < fp.num_dir; ++i)
+    {
+        fat32_directory_t *data = read_dir(manager, &dir);
+        dir = get_dir(data, fp.dirs[i]);
+        free(data);
+    }
+    fs_file_t f;
+    create_file(manager, &dir, &f, fp.file_name, size, false);
+    write_file(manager, &f, buffer);
     free_path(&fp);
 }

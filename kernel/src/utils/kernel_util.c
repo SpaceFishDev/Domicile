@@ -190,7 +190,8 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     // read_file_from_path(f32, "testdir/test/test.txt", buffer);
     // printf("%s\n", buffer);
 
-    remove_file_from_path(f32, "testdir/test2.txt");
+    // remove_file_from_path(f32, "testdir/test2.txt");
+    write_file_from_path(f32, "testdir/test3.txt", "Hello, World!", strlen("Hello, World!"));
 
     dump_trace();
     printf("Kernel initialized successfully\n");

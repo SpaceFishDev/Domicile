@@ -139,7 +139,7 @@ typedef enum
 
 typedef struct fs_file
 {
-    char name[9];
+    char name[12];
     char extension[4];
     uint64_t file_size;
     uint64_t base_cluster;
@@ -198,5 +198,12 @@ void remove_file_entry(fat32_manager_t *manager, uint64_t directory_cluster, fat
 void remove_file(fat32_manager_t *manager, fs_file_t *dir, char *name);
 void remove_file_from_root(fat32_manager_t *manager, char *name);
 void remove_file_from_path(fat32_manager_t *manager, char *path);
+
+void write_file_from_path(fat32_manager_t *manager, char *path, char *buffer, uint64_t size);
+void write_file(fat32_manager_t *manager, fs_file_t *file, char *buffer);
+void create_file(fat32_manager_t *manager, fs_file_t *directory, fs_file_t *file, char *name, uint64_t size, bool is_dir);
+uint64_t write_file_contents(fat32_manager_t *manager, char *buffer, uint64_t size, uint64_t base_cluster);
+uint64_t write_file_fat(fat32_manager_t *manager, uint64_t size);
+void write_file_entry(fat32_manager_t *manager, fat32_directory_t *entry, fs_file_t *directory);
 
 #endif
