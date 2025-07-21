@@ -2,6 +2,10 @@
 
 void framebuffer_put_pixel(frame_buffer_t *frame_buffer, int x, int y, uint8_t r, uint8_t g, uint8_t b)
 {
+    if (global_basic_renderer->disabled)
+    {
+        return;
+    }
     if (x < 0 || x > (int)frame_buffer->width)
     {
         return;
@@ -22,6 +26,10 @@ void framebuffer_put_pixel(frame_buffer_t *frame_buffer, int x, int y, uint8_t r
 // todo: rewrite this to use framebuffer_put_pixel
 void draw_char(frame_buffer_t *frame_buffer, psf1_font_t *font, unsigned int color, char chr, unsigned int _x, unsigned int _y)
 {
+    if (global_basic_renderer->disabled)
+    {
+        return;
+    }
     int *pix_ptr = (int *)frame_buffer->base_addr;
     char *font_ptr = font->glyph_buffer + (chr * font->psf1_header->charsize);
     if (_x + 8 > frame_buffer->width)
@@ -47,6 +55,10 @@ void draw_char(frame_buffer_t *frame_buffer, psf1_font_t *font, unsigned int col
 
 void print_str(basic_renderer_t *renderer, char *str, uint32_t color)
 {
+    if (global_basic_renderer->disabled)
+    {
+        return;
+    }
     while (*str)
     {
         if (*str == '\n')
@@ -66,6 +78,10 @@ void print_str(basic_renderer_t *renderer, char *str, uint32_t color)
 
 void clear_screen(basic_renderer_t *renderer, uint8_t r, uint8_t g, uint8_t b)
 {
+    if (global_basic_renderer->disabled)
+    {
+        return;
+    }
     for (uint32_t x = 0; x < renderer->frame_buffer->width; ++x)
     {
         for (uint32_t y = 0; y < renderer->frame_buffer->height; ++y)

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "typdef.h"
 #include "string.h"
 #include "../basic_renderer/basic_renderer.h"

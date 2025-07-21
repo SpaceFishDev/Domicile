@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "../device-drivers/ahci/ahci.h"
+#include "filesystem.h"
 
 #define FAT_READ_ONLY 0x01
 #define FAT_HIDDEN 0x02
@@ -205,5 +206,8 @@ void create_file(fat32_manager_t *manager, fs_file_t *directory, fs_file_t *file
 uint64_t write_file_contents(fat32_manager_t *manager, char *buffer, uint64_t size, uint64_t base_cluster);
 uint64_t write_file_fat(fat32_manager_t *manager, uint64_t size);
 void write_file_entry(fat32_manager_t *manager, fat32_directory_t *entry, fs_file_t *directory);
+void write_directory_from_path(fat32_manager_t *manager, char *path);
+
+file_system_manager_t fat_create_fs_manager(fat32_manager_t *manager);
 
 #endif

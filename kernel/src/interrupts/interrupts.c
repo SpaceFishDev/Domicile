@@ -6,18 +6,21 @@
 
 __attribute__((interrupt)) void page_fault_handler(struct interrupt_frame *interrupt_frame)
 {
+    global_basic_renderer->disabled = false;
     panic("Page Fault detected");
     while (1)
         ;
 }
 __attribute__((interrupt)) void double_fault_handler(struct interrupt_frame *interrupt_frame)
 {
+    global_basic_renderer->disabled = false;
     panic("Double Fault detected");
     while (1)
         ;
 }
 __attribute__((interrupt)) void general_protection_handler(struct interrupt_frame *interrupt_frame)
 {
+    global_basic_renderer->disabled = false;
     panic("General Protection Fault detected");
     while (1)
         ;
@@ -36,7 +39,7 @@ __attribute__((interrupt)) void ps2_mouse_handler(struct interrupt_frame *interr
     pic_end_slave();
 }
 
-__attribute__((interrupt)) void pit_handler(struct interrupt_frame *interrupt_frame)
+void c_pit_handler(cpu_state_t *cpu_state)
 {
     pit_timer_tick();
     pic_end_master();

@@ -32,5 +32,6 @@ typedef struct __attribute__((packed)) __attribute__((aligned(0x1000)))
 extern gdt_t default_gdt;
 
 extern void load_gdt(gdt_descriptor_t *gdt_descriptor);
+void set_tss_descriptor(gdt_entry_t *tss_low, gdt_entry_t *tss_high, uint64_t base, uint32_t limit);
 
 #endif

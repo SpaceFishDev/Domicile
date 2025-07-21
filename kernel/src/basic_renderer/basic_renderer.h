@@ -6,6 +6,7 @@
 
 #include "../utils/typdef.h"
 #include "../utils/string.h"
+#include <stdbool.h>
 
 typedef struct
 {
@@ -20,6 +21,7 @@ typedef struct
     point_t cursor_position;
     frame_buffer_t *frame_buffer;
     psf1_font_t *font;
+    bool disabled;
 } basic_renderer_t;
 
 void framebuffer_put_pixel(frame_buffer_t *frame_buffer, int x, int y, uint8_t r, uint8_t g, uint8_t b);

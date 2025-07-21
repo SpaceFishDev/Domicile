@@ -28,11 +28,17 @@ DIRS = $(wildcard $(SRCDIR)/*)
 
 all: build_run
 
-build_run: kernel buildimg disk run
+build_run: kernel buildimg run
 
 FOLDER=./disk_contents
 IMG="disk.img"
 SIZE_MB=100
+
+dump_disk:
+	rm -rf ./disk_contents
+	mkdir -p ./disk_contents
+	mcopy -i disk.img -s ::* ./disk_contents/
+
 
 disk: 
 	dd if=/dev/zero of="$(IMG)" bs=1M count=$(SIZE_MB)

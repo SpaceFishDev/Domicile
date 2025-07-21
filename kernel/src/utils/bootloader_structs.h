@@ -1,6 +1,7 @@
 
 #ifndef BOOTLOADER_STRUCTS_H
 #define BOOTLOADER_STRUCTS_H
+#include <stddef.h>
 
 #include "efi_memory.h"
 #include "../device-drivers/acpi/acpi.h"

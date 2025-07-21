@@ -10,6 +10,8 @@
 #include "../device-drivers/pit/pit.h"
 #include "../device-drivers/ahci/ahci.h"
 #include "../filesystem/fat.h"
+#include "../filesystem/filesystem.h"
+#include "../renderer/renderer.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)
@@ -142,6 +144,42 @@ void init_pci(boot_info_t *boot_info)
     enumerate_pci(mcfg_header);
 }
 
+void init_ahci(kernel_info_t *kernel_info)
+{
+    ahci_manager_t *manager = malloc(sizeof(ahci_manager_t));
+    if (AHCI_exists)
+    {
+        for (uint64_t i = 0; i < sizeof(ahci_manager_t); ++i)
+        {
+            char *ptr = (char *)manager;
+            ptr[i] = 0;
+        }
+        init_ahci_manager(manager, ahci_device);
+    }
+    else
+    {
+        free(manager);
+        manager = 0;
+    }
+    kernel_info->ahci_manager = manager;
+}
+
+void init_fs()
+{
+    fat32_manager_t *f32 = malloc(sizeof(fat32_manager_t));
+    init_fat32_manager(f32, 0);
+
+    file_system_t *file_system = malloc(sizeof(file_system_t));
+    init_file_system(file_system, 0);
+
+    global_file_system = file_system;
+
+    file_system_manager_t *f32_manager = malloc(sizeof(file_system_manager_t));
+    *f32_manager = fat_create_fs_manager(f32);
+
+    register_fs_manager(f32_manager);
+}
+
 void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
 {
     init_gdt();
@@ -164,34 +202,10 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
     clear_screen(global_basic_renderer, 0, 0, 0);
     init_pci(boot_info);
 
-    ahci_manager_t *manager = malloc(sizeof(ahci_manager_t));
-    if (AHCI_exists)
-    {
-        for (uint64_t i = 0; i < sizeof(ahci_manager_t); ++i)
-        {
-            char *ptr = (char *)manager;
-            ptr[i] = 0;
-        }
-        init_ahci_manager(manager, ahci_device);
-    }
-    else
-    {
-        free(manager);
-        manager = 0;
-    }
-    kernel_info->ahci_manager = manager;
+    init_ahci(kernel_info);
 
-    fat32_manager_t *f32 = malloc(sizeof(fat32_manager_t));
-    init_fat32_manager(f32, 0);
-
-    // fs_file_t f = get_file_from_path(f32, "testdir/test/test.txt");
-    // char *buffer = malloc(f.file_size + 1);
-    // buffer[f.file_size] = 0;
-    // read_file_from_path(f32, "testdir/test/test.txt", buffer);
-    // printf("%s\n", buffer);
-
-    // remove_file_from_path(f32, "testdir/test2.txt");
-    write_file_from_path(f32, "testdir/test3.txt", "Hello, World!", strlen("Hello, World!"));
+    init_fs();
+    init_renderer(boot_info->frame_buffer->width, boot_info->frame_buffer->height, boot_info->frame_buffer->base_addr, 1024 * 4);
 
     dump_trace();
     printf("Kernel initialized successfully\n");
