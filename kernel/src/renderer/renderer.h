@@ -49,6 +49,7 @@ void renderer_clear();
 void free_renderer();
 texture_t *create_texture(uint64_t width, uint64_t height);
 void texture_put_pixel(texture_t *tex, vector2_t pos, color_t pix);
+color_t texture_get_pixel(texture_t *tex, vector2_t pos);
 
 #define COLOR(r, g, b, a) ((color_t){r, g, b, a})
 #define VEC2(x, y) ((vector2_t){x, y})

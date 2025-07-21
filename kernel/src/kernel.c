@@ -7,6 +7,8 @@
 #include "device-drivers/pit/pit.h"
 #include "filesystem/filesystem.h"
 #include "renderer/renderer.h"
+#include "math/math.h"
+#include "text_renderer/text_renderer.h"
 
 void _start(boot_info_t *boot_info_ptr)
 {
@@ -25,36 +27,27 @@ void _start(boot_info_t *boot_info_ptr)
             texture_put_pixel(background, VEC2(x, y), COLOR(60, 60, 60, 255));
         }
     }
-    texture_t *test = create_texture(200, 200);
-    uint64_t test_id = renderer_add_texture(test);
-    test->bounds.x = 50;
-    test->bounds.y = 20;
-    for (int x = 0; x < 200; ++x)
+
+    bool font_inited = set_current_font("/sans.ttf");
+    if (!font_inited)
     {
-        for (int y = 0; y < 200; ++y)
+        global_basic_renderer->disabled = false;
+        printf(":( font died\n");
+        global_basic_renderer->disabled = true;
+        while (true)
         {
-            float fx = x;
-            float fy = y;
-            float fb = fx / 200.0f;
-            float fg = fy / 200.0f;
-            fb *= 255;
-            fg *= 255;
-            uint8_t r = 80;
-            uint8_t g = (uint8_t)fg;
-            uint8_t b = (uint8_t)fb;
-            texture_put_pixel(test, VEC2(x, y), COLOR(r, g, b, 255));
+            asm("hlt");
         }
     }
+
+    texture_t *tex = render_text_to_texture("Hello, World", 32);
+    renderer_add_texture(tex);
 
     while (true)
     {
         renderer_clear();
-        for (int x = 0; x < 200; ++x)
-        {
-            for (int y = 0; y < 200; ++y)
-            {
-            }
-        }
         renderer_draw();
     }
+    // never happens but sanity or something idk gang
+    renderer_delete_texture(bg_id);
 }

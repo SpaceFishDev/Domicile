@@ -152,7 +152,7 @@ void *realloc(void *ptr, uint64_t size)
     return buffer;
 }
 
-void memcpy(void *to, void *from, uint64_t num)
+void *memcpy(void *restrict to, const void *restrict from, uint64_t num)
 {
     uint8_t *src = from;
     uint8_t *dest = to;
@@ -160,4 +160,5 @@ void memcpy(void *to, void *from, uint64_t num)
     {
         dest[i] = src[i];
     }
+    return to;
 }

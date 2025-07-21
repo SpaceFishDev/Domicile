@@ -126,7 +126,39 @@ void renderer_draw()
                 {
                     uint32_t *dst = &global_renderer->frame_buffer[x + (y * global_renderer->w)];
                     uint32_t *src = &tex->pixel_buffer[(y - start_y) * tex->bounds.w];
-                    memcpy32_fast(dst, src, tex->bounds.w);
+
+                    for (uint64_t i = 0; i < tex->bounds.w; ++i)
+                    {
+                        uint32_t src_color = src[i];
+                        uint32_t dst_color = dst[i];
+
+                        uint8_t src_a = (src_color >> 24) & 0xFF;
+
+                        if (src_a == 0)
+                            continue;
+
+                        if (src_a == 255)
+                        {
+                            dst[i] = src_color;
+                            continue;
+                        }
+
+                        uint8_t src_r = (src_color >> 16) & 0xFF;
+                        uint8_t src_g = (src_color >> 8) & 0xFF;
+                        uint8_t src_b = src_color & 0xFF;
+
+                        uint8_t dst_r = (dst_color >> 16) & 0xFF;
+                        uint8_t dst_g = (dst_color >> 8) & 0xFF;
+                        uint8_t dst_b = dst_color & 0xFF;
+
+                        uint8_t inv_a = 255 - src_a;
+
+                        uint8_t out_r = (uint8_t)((src_r * src_a + dst_r * inv_a) / 255);
+                        uint8_t out_g = (uint8_t)((src_g * src_a + dst_g * inv_a) / 255);
+                        uint8_t out_b = (uint8_t)((src_b * src_a + dst_b * inv_a) / 255);
+
+                        dst[i] = (0xFF << 24) | (out_r << 16) | (out_g << 8) | out_b;
+                    }
                 }
                 tex->drawn = true;
                 tex->changed = false;
@@ -160,4 +192,23 @@ void texture_put_pixel(texture_t *tex, vector2_t pos, color_t pix)
     uint32_t color = RGBA_TO_BGRA32(pix.r, pix.g, pix.b, pix.a);
     tex->pixel_buffer[offset] = color;
     tex->changed = true;
+}
+color_t texture_get_pixel(texture_t *tex, vector2_t pos)
+{
+    if (pos.x > tex->bounds.w || pos.x < 0)
+    {
+        return;
+    }
+    if (pos.y > tex->bounds.h || pos.y < 0)
+    {
+        return;
+    }
+    uint64_t offset = pos.x + (pos.y * tex->bounds.w);
+    uint32_t col = tex->pixel_buffer[offset];
+    uint8_t *cptr = (uint8_t *)&col;
+    uint8_t b = cptr[0];
+    uint8_t g = cptr[1];
+    uint8_t r = cptr[2];
+    uint8_t a = cptr[3];
+    return COLOR(r, g, b, a);
 }

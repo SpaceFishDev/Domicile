@@ -17,3 +17,6 @@ Domicile is a 64 bit Operating System.
 - more detailed panic screens
 - AHCI driver
 - FAT32 Driver (Only read at the moment)
+
+# Dependencies:
+- [stb_truetype](http://nothings.org/stb/stb_truetype.h)

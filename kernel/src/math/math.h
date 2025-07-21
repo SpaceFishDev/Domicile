@@ -6,5 +6,12 @@
 
 double cos(double x);
 double sin(double x);
+double fabs(double x);
+double floor(double x);
+double ceil(double x);
+double fmod(double x, double y);
+double pow(double base, double exp);
+double acos(double x);
+double sqrt(double x);
 
 #endif

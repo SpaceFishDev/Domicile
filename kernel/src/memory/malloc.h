@@ -30,7 +30,7 @@ void increase_heap_buffer(kernel_allocator_t *allocator);
 void *malloc(uint64_t size);
 void free(void *ptr);
 void *realloc(void *ptr, uint64_t size);
-void memcpy(void *to, void *from, uint64_t num);
+void *memcpy(void *restrict to, const void *restrict from, uint64_t num);
 
 extern kernel_allocator_t global_kmalloc;
 

@@ -75,7 +75,7 @@ void reverse_str(char *str)
     }
 }
 
-size_t strlen(char *str)
+size_t strlen(const char *str)
 {
     size_t s = 0;
     while (*str)
@@ -86,7 +86,7 @@ size_t strlen(char *str)
     return s;
 }
 
-void strcpy(char *dest, char *src)
+char *strcpy(char *restrict dest, const char *restrict src)
 {
     size_t i = 0;
     while (*src)
@@ -96,6 +96,7 @@ void strcpy(char *dest, char *src)
         ++i;
     }
     dest[i] = 0;
+    return dest;
 }
 void itoa_hex(uint64_t num, char *buffer)
 {
@@ -142,12 +143,13 @@ void ftoa(double num, char *buffer, int places)
     strcpy(buffer + idx, decimal_component);
 }
 
-void memset(void *start, uint8_t value, uint64_t num)
+void *memset(void *start, int value, uint64_t num)
 {
     for (uint64_t i = 0; i < num; i++)
     {
         *(uint8_t *)((uint64_t)start + i) = value;
     }
+    return start;
 }
 int vsprintf(char *out, char *fmt, va_list args)
 {
