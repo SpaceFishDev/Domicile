@@ -37,7 +37,7 @@ void register_fs_manager(file_system_manager_t *manager)
     }
 }
 
-uint64_t fs_open(char *p)
+uint64_t fs_open(char *p, bool directory)
 {
     uint64_t manager = global_file_system->current_manager;
     file_system_manager_t *man = global_file_system->managers[manager];
@@ -54,7 +54,7 @@ uint64_t fs_open(char *p)
         ++i;
     }
 
-    file_t *file = man->load_file(man->manager, path);
+    file_t *file = man->load_file(man->manager, path, directory);
 
     for (i = 0; i < MAX_GLOBAL_FILES; ++i)
     {
@@ -170,4 +170,18 @@ uint64_t fs_get_file_size(uint64_t f_id)
         return 0;
     }
     return file->size;
+}
+void fs_create_dir(uint64_t f_id)
+{
+    file_system_manager_t *man = global_file_system->managers[global_file_system->current_manager];
+    if (f_id == stdout || f_id == stdin || f_id == stderr)
+    {
+        return;
+    }
+    if (f_id > MAX_GLOBAL_FILES)
+    {
+        return;
+    }
+    file_t *file = global_file_system->files[f_id];
+    man->make_dir(man, file);
 }

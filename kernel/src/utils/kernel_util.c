@@ -12,6 +12,9 @@
 #include "../filesystem/fat.h"
 #include "../filesystem/filesystem.h"
 #include "../renderer/renderer.h"
+#include "../memdebug/memdebug.h"
+#include "../syscalls/syscall.h"
+#include "../scheduler/scheduler.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)
@@ -28,7 +31,7 @@ void prepare_memory(boot_info_t *boot_info)
 
     for (uint64_t t = 0; t < get_memory_size(*boot_info->memory_info); t += 0x1000)
     {
-        map_memory(&page_table_manager, (void *)t, (void *)t, true);
+        map_memory(&page_table_manager, (void *)t, (void *)t, true, false);
     }
 
     uint64_t fb_base = (uint64_t)boot_info->frame_buffer->base_addr;
@@ -38,7 +41,7 @@ void prepare_memory(boot_info_t *boot_info)
 
     for (uint64_t t = fb_base; t < (fb_base + fb_size); t += 0x1000)
     {
-        map_memory(&page_table_manager, (void *)t, (void *)t, false);
+        map_memory(&page_table_manager, (void *)t, (void *)t, false, false);
     }
 
     asm("mov %0, %%cr3" ::"r"(pml4));
@@ -61,17 +64,30 @@ void prepare_interrupts()
     idtr.limit = 0x0FFF;
     idtr.offset = (uint64_t)request_page(&global_allocator);
 
-    set_idt_gate(page_fault_handler, 0xE, IDT_TA_InterruptGate, 0x08);
+    // CPU exceptions
+    set_idt_gate(divide_error_handler, 0x00, IDT_TA_InterruptGate, 0x08);             // #DE
+    set_idt_gate(debug_handler, 0x01, IDT_TA_InterruptGate, 0x08);                    // #DB
+    set_idt_gate(breakpoint_handler, 0x03, IDT_TA_InterruptGate, 0x08);               // #BP
+    set_idt_gate(overflow_handler, 0x04, IDT_TA_InterruptGate, 0x08);                 // #OF
+    set_idt_gate(bound_range_exceeded_handler, 0x05, IDT_TA_InterruptGate, 0x08);     // #BR
+    set_idt_gate(invalid_opcode_handler, 0x06, IDT_TA_InterruptGate, 0x08);           // #UD
+    set_idt_gate(device_not_available_handler, 0x07, IDT_TA_InterruptGate, 0x08);     // #NM
+    set_idt_gate(double_fault_handler, 0x08, IDT_TA_InterruptGate, 0x08);             // #DF
+    set_idt_gate(invalid_tss_handler, 0x0A, IDT_TA_InterruptGate, 0x08);              // #TS
+    set_idt_gate(segment_not_present_handler, 0x0B, IDT_TA_InterruptGate, 0x08);      // #NP
+    set_idt_gate(stack_segment_fault_handler, 0x0C, IDT_TA_InterruptGate, 0x08);      // #SS
+    set_idt_gate(general_protection_handler, 0x0D, IDT_TA_InterruptGate, 0x08);       // #GP
+    set_idt_gate(page_fault_handler, 0x0E, IDT_TA_InterruptGate, 0x08);               // #PF
+    set_idt_gate(x87_floating_point_handler, 0x10, IDT_TA_InterruptGate, 0x08);       // #MF
+    set_idt_gate(alignment_check_handler, 0x11, IDT_TA_InterruptGate, 0x08);          // #AC
+    set_idt_gate(machine_check_handler, 0x12, IDT_TA_InterruptGate, 0x08);            // #MC
+    set_idt_gate(simd_floating_point_handler, 0x13, IDT_TA_InterruptGate, 0x08);      // #XM
+    set_idt_gate(virtualization_exception_handler, 0x14, IDT_TA_InterruptGate, 0x08); // #VE
+    set_idt_gate(syscall_handler, 0x80, IDT_TA_InterruptGate, 0x08);
 
-    set_idt_gate(double_fault_handler, 0x8, IDT_TA_InterruptGate, 0x08);
-
-    set_idt_gate(general_protection_handler, 0xD, IDT_TA_InterruptGate, 0x08);
-
+    set_idt_gate(pit_irq_stub, 0x20, IDT_TA_InterruptGate, 0x08);
     set_idt_gate(ps2_keyboard_handler, 0x21, IDT_TA_InterruptGate, 0x08);
-
     set_idt_gate(ps2_mouse_handler, 0x2C, IDT_TA_InterruptGate, 0x08);
-
-    set_idt_gate(pit_handler, 0x20, IDT_TA_InterruptGate, 0x08);
 
     asm("lidt %0" ::"m"(idtr));
 
@@ -183,7 +199,9 @@ void init_fs()
 void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
 {
     init_gdt();
+    init_tss();
     init_memory(kernel_info, boot_info);
+    init_memdebug();
     init_rendering(boot_info);
 
     init_kernel_trace();
@@ -191,13 +209,14 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
 
     init_keyboard();
 
+    init_syscalls();
+
     prepare_interrupts();
 
     unmask_pic();
 
+    pit_set_divisor(10000);
     asm("sti");
-
-    pit_set_divisor(2000);
 
     clear_screen(global_basic_renderer, 0, 0, 0);
     init_pci(boot_info);
@@ -206,10 +225,13 @@ void init_kernel(kernel_info_t *kernel_info, boot_info_t *boot_info)
 
     init_fs();
     init_renderer(boot_info->frame_buffer->width, boot_info->frame_buffer->height, boot_info->frame_buffer->base_addr, 1024 * 4);
+    bool font_inited = set_current_font("default");
 
     dump_trace();
     printf("Kernel initialized successfully\n");
 
     global_trace_manager->logging = 0;
     kernel_trace_clear();
+    memdebug_view();
+    cleanup_memdebug();
 }

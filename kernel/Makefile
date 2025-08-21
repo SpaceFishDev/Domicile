@@ -13,6 +13,7 @@ CFLAGS = -ffreestanding -fshort-wchar -g -Wall -Wextra -mno-red-zone
 ASMFLAGS = 
 LDFLAGS = -T $(LDS) -static -Bsymbolic -nostdlib -g
 
+SHELLDIR := ../shell/src
 SRCDIR := src
 OBJDIR := lib
 BUILDDIR = bin
@@ -51,6 +52,8 @@ clean:
 kernel: $(OBJS) link
 $(OBJDIR)/interrupts/interrupts.o: $(SRCDIR)/interrupts/interrupts.c
 	$(CC) -mno-red-zone -mgeneral-regs-only -ffreestanding -c $^ -o $@ 
+$(OBJDIR)/syscalls/syscall.o: $(SRCDIR)/syscalls/syscall.c
+	$(CC) -mno-red-zone -mgeneral-regs-only -ffreestanding -c $^ -o $@ 
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	@ mkdir -p $(@D)
@@ -60,8 +63,9 @@ $(OBJDIR)/%_asm.o: $(SRCDIR)/%.asm
 	@ mkdir -p $(@D)
 	$(ASMC) $(ASMFLAGS) $^ -f elf64 -o $@
 
+
 link:
-	$(LD) $(LDFLAGS) -o $(BUILDDIR)/kernel.elf $(OBJS)
+	$(LD) $(LDFLAGS) -o $(BUILDDIR)/kernel.elf $(OBJS) 
 setup:
 	@mkdir $(BUILDDIR)
 	@mkdir $(SRCDIR)

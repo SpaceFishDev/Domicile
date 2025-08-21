@@ -9,6 +9,8 @@
 #include "renderer/renderer.h"
 #include "math/math.h"
 #include "text_renderer/text_renderer.h"
+#include "syscalls/syscall.h"
+#include "executable/executable.h"
 
 void _start(boot_info_t *boot_info_ptr)
 {
@@ -28,26 +30,12 @@ void _start(boot_info_t *boot_info_ptr)
         }
     }
 
-    bool font_inited = set_current_font("/sans.ttf");
-    if (!font_inited)
-    {
-        global_basic_renderer->disabled = false;
-        printf(":( font died\n");
-        global_basic_renderer->disabled = true;
-        while (true)
-        {
-            asm("hlt");
-        }
-    }
-
-    texture_t *tex = render_text_to_texture("Hello, World", 32);
-    renderer_add_texture(tex);
+    renderer_clear();
+    renderer_draw();
+    start_proc_from_path("shell");
 
     while (true)
     {
-        renderer_clear();
-        renderer_draw();
+        asm("hlt");
     }
-    // never happens but sanity or something idk gang
-    renderer_delete_texture(bg_id);
 }

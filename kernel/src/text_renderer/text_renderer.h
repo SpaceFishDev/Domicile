@@ -8,5 +8,6 @@
 
 bool set_current_font(char *path);
 texture_t *render_text_to_texture(char *text, float font_size);
+extern uint8_t default_font[];
 
 #endif

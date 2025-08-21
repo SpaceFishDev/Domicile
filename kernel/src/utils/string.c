@@ -183,26 +183,21 @@ int vsprintf(char *out, char *fmt, va_list args)
             case 'd':
             {
                 int value = va_arg(args, int);
-                int used_value = value;
-                if (value < 0)
-                {
-                    used_value = -value;
-                }
                 char buf[32];
-                itoa(used_value, buf);
-                int i = 0;
-                int len = strlen(buf);
                 if (value < 0)
                 {
-                    i++;
+                    value = -value;
+                    *out_ptr = '-';
                     ++out_ptr;
                 }
+                int i = 0;
+                uitoa(value, buf);
+                int len = strlen(buf);
                 for (; i < len; ++i)
                 {
                     *out_ptr = buf[i];
                     ++out_ptr;
                 }
-                *(out_ptr - len) = '-';
             }
             break;
             case 'x':
@@ -293,4 +288,22 @@ char *strcat(char *dest, const char *src)
     *ptr = '\0'; // Null-terminate
 
     return dest;
+}
+
+int strcmp(char *a, char *b)
+{
+    while (*a)
+    {
+        if (*a > *b)
+        {
+            return 1;
+        }
+        else if (*a < *b)
+        {
+            return -1;
+        }
+        ++a;
+        ++b;
+    }
+    return 0;
 }

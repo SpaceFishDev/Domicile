@@ -802,7 +802,7 @@ void write_file_from_path(fat32_manager_t *manager, char *path, char *buffer, ui
     free_path(&fp);
 }
 
-fs_file_t create_file_from_path(fat32_manager_t *manager, char *path)
+fs_file_t create_file_from_path(fat32_manager_t *manager, char *path, bool is_dir)
 {
     fs_path_t fp = parse_path(path);
     if (fp.num_dir == 0)
@@ -822,7 +822,7 @@ fs_file_t create_file_from_path(fat32_manager_t *manager, char *path)
         free(data);
     }
     fs_file_t f;
-    create_file(manager, &dir, &f, fp.file_name, 0, false);
+    create_file(manager, &dir, &f, fp.file_name, 0, is_dir);
     free_path(&fp);
     return f;
 }
@@ -860,7 +860,7 @@ void clean_up(file_t *file)
     free(file->internal_file_info);
 }
 
-file_t *load_file(void *man, char *path)
+file_t *load_file(void *man, char *path, bool is_dir)
 {
     fat32_manager_t *manager = (fat32_manager_t *)man;
     file_t *result = malloc(sizeof(file_t));
@@ -868,7 +868,7 @@ file_t *load_file(void *man, char *path)
     *internal_file_info = get_file_from_path(manager, path);
     if (internal_file_info->base_cluster == 0)
     {
-        *internal_file_info = create_file_from_path(manager, path);
+        *internal_file_info = create_file_from_path(manager, path, is_dir);
     }
     result->internal_file_info = internal_file_info;
     result->size = internal_file_info->file_size;
@@ -898,6 +898,12 @@ void delete_file(void *man, file_t *file)
     remove_file_from_path(manager, file->path);
 }
 
+void make_dir(void *man, file_t *file)
+{
+    fat32_manager_t *manager = (fat32_manager_t *)man;
+    write_directory_from_path(manager, file->path);
+}
+
 file_system_manager_t fat_create_fs_manager(fat32_manager_t *manager)
 {
     file_system_manager_t fs_manager;
@@ -908,6 +914,7 @@ file_system_manager_t fat_create_fs_manager(fat32_manager_t *manager)
     fs_manager.read_buffer = read_buffer;
     fs_manager.write_buffer = write_buffer;
     fs_manager.delete_file = delete_file;
+    fs_manager.make_dir = make_dir;
     fs_manager.type = FAT32;
     return fs_manager;
 }

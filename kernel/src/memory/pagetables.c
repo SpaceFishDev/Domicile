@@ -36,7 +36,7 @@ void init_page_table_manager(page_table_manager_t *manager, page_table_t *pml4_a
     manager->pml4_addr = pml4_addr;
 }
 
-void map_memory(page_table_manager_t *manager, void *virt_addr, void *phys_addr, bool cache)
+void map_memory(page_table_manager_t *manager, void *virt_addr, void *phys_addr, bool cache, bool user)
 {
     page_map_indexer_t indexer;
     init_page_map_indexer(&indexer, (uint64_t)virt_addr);

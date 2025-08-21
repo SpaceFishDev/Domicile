@@ -23,7 +23,7 @@ void enumerate_function(uint64_t device_addr, uint64_t function)
 {
     uint64_t offset = function << 12;
     uint64_t func_addr = device_addr + offset;
-    map_memory(global_page_table_manager, (void *)func_addr, (void *)func_addr, false);
+    map_memory(global_page_table_manager, (void *)func_addr, (void *)func_addr, false, false);
 
     pci_device_header_t *pci_device_header = (pci_device_header_t *)func_addr;
     if (pci_device_header->device_id == 0)
@@ -46,7 +46,7 @@ void enumerate_device(uint64_t bus_addr, uint64_t device)
 {
     uint64_t offset = device << 15;
     uint64_t device_addr = bus_addr + offset;
-    map_memory(global_page_table_manager, (void *)device_addr, (void *)device_addr, false);
+    map_memory(global_page_table_manager, (void *)device_addr, (void *)device_addr, false, false);
 
     pci_device_header_t *pci_device_header = (pci_device_header_t *)device_addr;
     if (pci_device_header->device_id == 0)
@@ -67,7 +67,7 @@ void enumerate_bus(uint64_t base_addr, uint64_t bus)
 {
     uint64_t offset = bus << 20;
     uint64_t bus_addr = base_addr + offset;
-    map_memory(global_page_table_manager, (void *)bus_addr, (void *)bus_addr, false);
+    map_memory(global_page_table_manager, (void *)bus_addr, (void *)bus_addr, false, false);
 
     pci_device_header_t *pci_device_header = (pci_device_header_t *)bus_addr;
     if (pci_device_header->device_id == 0)

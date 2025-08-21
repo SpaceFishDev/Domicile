@@ -15,7 +15,7 @@ void init_ahci_manager(ahci_manager_t *manager, pci_device_header_t *pci_base_ad
 
         manager->ABAR = (hba_memory_t *)((uint64_t)((pci_header_0_t *)pci_base_addr)->BAR5);
 
-        map_memory(global_page_table_manager, manager->ABAR, manager->ABAR, false);
+        map_memory(global_page_table_manager, manager->ABAR, manager->ABAR, false, false);
         probe_ports(manager);
 
         for (int i = 0; i < manager->port_count; ++i)

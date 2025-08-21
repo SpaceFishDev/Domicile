@@ -30,8 +30,14 @@ stbtt_fontinfo *font;
 
 bool set_current_font(char *path)
 {
+    if (!strcmp(path, "default"))
+    {
+        font = malloc(sizeof(stbtt_fontinfo));
+        bool worked = stbtt_InitFont(font, default_font, 0);
+        return worked;
+    }
     uint64_t file_size = 0;
-    uint64_t fd = fs_open(path);
+    uint64_t fd = fs_open(path, false);
     file_size = fs_get_file_size(fd);
     char *buffer = malloc(file_size);
     fs_read(buffer, fd);
