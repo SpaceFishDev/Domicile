@@ -82,7 +82,7 @@ void measure_text(const char *text, float font_size, int *out_width, int *out_he
         *out_height = max_y1 - min_y0;
 }
 
-texture_t *render_text_to_texture(char *text, float font_size)
+texture_t *render_text_to_texture(char *text, float font_size, color_t col)
 {
     int width, height;
     measure_text(text, font_size, &width, &height);
@@ -112,10 +112,11 @@ texture_t *render_text_to_texture(char *text, float font_size)
                 unsigned char a = bitmap[by * w + bx];
                 int px = x + x0 + bx;
                 int py = baseline + y0 + by;
+                col.a = a;
 
                 if (px >= 0 && px < width && py >= 0 && py < height)
                 {
-                    texture_put_pixel(tex, VEC2(px, py), COLOR(1, 1, 1, a));
+                    texture_put_pixel(tex, VEC2(px, py), col);
                 }
             }
         }

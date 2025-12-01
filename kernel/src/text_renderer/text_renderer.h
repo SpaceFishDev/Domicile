@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 bool set_current_font(char *path);
-texture_t *render_text_to_texture(char *text, float font_size);
+texture_t *render_text_to_texture(char *text, float font_size, color_t col);
 extern uint8_t default_font[];
 
 #endif

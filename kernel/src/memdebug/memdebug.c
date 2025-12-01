@@ -21,7 +21,7 @@ void grow_allocations()
 
 void init_memdebug()
 {
-    sz_allocations = 1;
+    sz_allocations = 1024;
     allocations = malloc(sz_allocations * sizeof(allocation_t));
 }
 

@@ -24,6 +24,5 @@ typedef struct
 void init_syscalls();
 
 extern void syscall_handler();
-extern void jump_usermode(uint64_t *user_stack_top);
 
 #endif

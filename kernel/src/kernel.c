@@ -10,7 +10,7 @@
 #include "math/math.h"
 #include "text_renderer/text_renderer.h"
 #include "syscalls/syscall.h"
-#include "executable/executable.h"
+#include "executables/vm.h"
 
 void _start(boot_info_t *boot_info_ptr)
 {
@@ -26,13 +26,23 @@ void _start(boot_info_t *boot_info_ptr)
     {
         for (int y = 0; y < background->bounds.h; ++y)
         {
-            texture_put_pixel(background, VEC2(x, y), COLOR(60, 60, 60, 255));
+            float r = (float)x / (float)background->bounds.w;
+            r *= 255.0f;
+            uint8_t r8 = (uint8_t)r;
+            float g = (float)y / (float)background->bounds.h;
+            g *= 255.0f;
+            uint8_t g8 = (uint8_t)g;
+
+            texture_put_pixel(background, VEC2(x, y), COLOR(r8, g8, 150, 255));
         }
     }
+    texture_t *tex = render_text_to_texture("Welcome to domicile.", 34, COLOR(255, 255, 255, 1));
+    tex->bounds.x = 25;
+    tex->bounds.y = 25;
+    renderer_add_texture(tex);
 
     renderer_clear();
     renderer_draw();
-    start_proc_from_path("shell");
 
     while (true)
     {
