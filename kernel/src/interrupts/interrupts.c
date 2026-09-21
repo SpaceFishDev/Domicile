@@ -160,16 +160,16 @@ __attribute__((interrupt)) void virtualization_exception_handler(struct interrup
     while (1)
         ;
 }
+#include "../utils/string.h"
 
 int tick = 0;
 void pit_handler(trapframe_t *trap_frame)
 {
-    pit_timer_tick();
-    if (tick > 10)
+    if(trap_frame->rax == 42069)
     {
-        scheduler_tick(trap_frame);
-        tick = 0;
+        panic("GOT THE NUMBER THE FUNNY ONE FUCK YES");
     }
+    pit_timer_tick();
     pic_end_master();
     ++tick;
 }

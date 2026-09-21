@@ -14,7 +14,6 @@
 #include "../renderer/renderer.h"
 #include "../memdebug/memdebug.h"
 #include "../syscalls/syscall.h"
-#include "../scheduler/scheduler.h"
 
 page_table_manager_t page_table_manager;
 void prepare_memory(boot_info_t *boot_info)

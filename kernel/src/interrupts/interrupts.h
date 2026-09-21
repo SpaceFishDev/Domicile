@@ -4,7 +4,6 @@
 
 #include "../basic_renderer/basic_renderer.h"
 #include "../io/io.h"
-#include "../scheduler/scheduler.h"
 
 #define PIC1_COMMAND 0x20
 #define PIC1_DATA 0x21
@@ -15,6 +14,12 @@
 #define ICW1_INIT 0x10
 #define ICW1_ICW4 0x01
 #define ICW4_8086 0x01
+
+typedef struct {
+    uint64_t r15, r14, r13, r12, r11, r10, r9, r8;
+    uint64_t rsi, rdi, rbp, rdx, rcx, rbx, rax;
+    uint64_t rip, cs, rflags, rsp, ss;
+} __attribute__((packed)) trapframe_t;
 
 struct interrupt_frame;
 __attribute__((interrupt)) void page_fault_handler(struct interrupt_frame *interrupt_frame);
@@ -38,6 +43,7 @@ __attribute__((interrupt)) void machine_check_handler(struct interrupt_frame *in
 __attribute__((interrupt)) void simd_floating_point_handler(struct interrupt_frame *interrupt_frame);
 __attribute__((interrupt)) void virtualization_exception_handler(struct interrupt_frame *interrupt_frame);
 void pit_handler(trapframe_t *trap_frame);
+extern void pit_irq_stub();
 
 void remap_pic();
 void pic_end_master();

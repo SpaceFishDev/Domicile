@@ -10,7 +10,7 @@
 #include "math/math.h"
 #include "text_renderer/text_renderer.h"
 #include "syscalls/syscall.h"
-#include "executables/vm.h"
+extern double time_since_boot;
 
 void _start(boot_info_t *boot_info_ptr)
 {
@@ -42,9 +42,6 @@ void _start(boot_info_t *boot_info_ptr)
 
     renderer_clear();
     renderer_draw();
+    asm("hlt");
 
-    while (true)
-    {
-        asm("hlt");
-    }
 }
