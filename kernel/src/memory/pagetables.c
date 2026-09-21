@@ -52,13 +52,15 @@ void map_memory(page_table_manager_t *manager, void *virt_addr, void *phys_addr,
         set_flag(&PDE, PRESENT, true);
         set_flag(&PDE, READ_WRITE, true);
         set_flag(&PDE, CACHE_DISABLED, !cache);
+        set_flag(&PDE, USERSUPER, user);
         manager->pml4_addr->entries[indexer.pdp_i] = PDE;
     }
     else
     {
+        set_flag(&PDE, USERSUPER, user);
+        manager->pml4_addr->entries[indexer.pdp_i] = PDE;
         pdp = (page_table_t *)((uint64_t)get_addr(&PDE) << 12);
     }
-
     PDE = pdp->entries[indexer.pd_i];
     page_table_t *pd;
     if (!get_flag(&PDE, PRESENT))
@@ -69,10 +71,13 @@ void map_memory(page_table_manager_t *manager, void *virt_addr, void *phys_addr,
         set_flag(&PDE, PRESENT, true);
         set_flag(&PDE, READ_WRITE, true);
         set_flag(&PDE, CACHE_DISABLED, !cache);
+        set_flag(&PDE, USERSUPER, user);
         pdp->entries[indexer.pd_i] = PDE;
     }
     else
     {
+        set_flag(&PDE, USERSUPER, user);
+        pdp->entries[indexer.pd_i] = PDE;
         pd = (page_table_t *)((uint64_t)get_addr(&PDE) << 12);
     }
     PDE = pd->entries[indexer.pt_i];
@@ -85,10 +90,13 @@ void map_memory(page_table_manager_t *manager, void *virt_addr, void *phys_addr,
         set_flag(&PDE, PRESENT, true);
         set_flag(&PDE, READ_WRITE, true);
         set_flag(&PDE, CACHE_DISABLED, !cache);
+        set_flag(&PDE, USERSUPER, user);
         pd->entries[indexer.pt_i] = PDE;
     }
     else
     {
+        set_flag(&PDE, USERSUPER, user);
+        pd->entries[indexer.pt_i] = PDE;
         pt = (page_table_t *)((uint64_t)get_addr(&PDE) << 12);
     }
 
@@ -97,5 +105,6 @@ void map_memory(page_table_manager_t *manager, void *virt_addr, void *phys_addr,
     set_flag(&PDE, PRESENT, true);
     set_flag(&PDE, READ_WRITE, true);
     set_flag(&PDE, CACHE_DISABLED, !cache);
+    set_flag(&PDE, USERSUPER, user);
     pt->entries[indexer.p_i] = PDE;
 }
