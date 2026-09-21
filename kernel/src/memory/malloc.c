@@ -112,6 +112,106 @@ void *malloc(uint64_t size)
     global_kmalloc.allocatable = global_kmalloc.buffer_size;
     return malloc(size);
 }
+
+// assumes that a and b are adjacent (pointer wise atleast)
+void *merge_two_blocks(void* a, void* b)
+{
+
+    mem_block_t block_a;
+    mem_block_t block_b;
+    uint64_t idx_a = 0;
+    uint64_t idx_b = 0;
+    for (uint64_t i = 0; i < global_kmalloc.num_block; ++i)
+    {
+        if(global_kmalloc.blocks[i].ptr == a)
+        {
+            block_a.ptr = a;
+            block_a.size = global_kmalloc.blocks[i].size;
+            block_a.used = false;
+            idx_a = i;
+        }
+        if(global_kmalloc.blocks[i].ptr == b)
+        {
+            block_b.ptr = b;
+            block_b.size = global_kmalloc.blocks[i].size;
+            block_b.used = false;
+            idx_b = i;
+        }
+    }
+    if(block_a.ptr > block_b.ptr)
+    {
+        mem_block_t intermediate;
+        intermediate.ptr = block_b.ptr;
+        intermediate.size = block_b.size;
+        intermediate.used = false;
+        block_b.ptr = block_a.ptr;
+        block_b.size = block_a.size;
+        block_a.ptr = intermediate.ptr;
+        block_a.size = intermediate.size;
+        uint64_t i = idx_b;
+        idx_b = idx_a;
+        idx_a = i;
+    }
+    mem_block_t merged_block;
+    merged_block.ptr = block_a.ptr;
+    merged_block.size = block_a.size + block_b.size; 
+    merged_block.used = false;
+    global_kmalloc.blocks[idx_a] = merged_block;
+    for(uint64_t n = idx_b; n < (global_kmalloc.num_block-1); ++n)
+    {
+        global_kmalloc.blocks[n] = global_kmalloc.blocks[n+1];
+    }
+    global_kmalloc.num_block--;
+    return merged_block.ptr;
+}
+
+void* find_free_adjacent(void* ptr)
+{
+    uint64_t idx_ptr = 0;
+    for(uint64_t i = 0; i < global_kmalloc.num_block; ++i)
+    {
+        if(global_kmalloc.blocks[i].ptr == ptr)
+        {
+            idx_ptr = i;
+        }
+    }
+    void* right = (void*)(global_kmalloc.blocks[idx_ptr].size + (uint64_t)ptr);
+    void* left = (void*)(global_kmalloc.blocks[idx_ptr].size - (uint64_t)ptr);
+    uint64_t adj_idx = global_kmalloc.num_block+1;
+    for(uint64_t i = 0; i < global_kmalloc.num_block; ++i)
+    {
+        if(global_kmalloc.blocks[i].ptr == left && global_kmalloc.blocks[i].used == false)
+        {
+            adj_idx = i;
+            break;
+        }
+        if(global_kmalloc.blocks[i].ptr == right && global_kmalloc.blocks[i].used == false)
+        {
+            adj_idx = i;
+            break;
+        }
+    } 
+    if(adj_idx > global_kmalloc.num_block)
+    {
+        return (void*)0;
+    }
+    return global_kmalloc.blocks[adj_idx].ptr;
+}
+
+void merge_free_blocks(void* ptr)
+{
+    void* current = ptr;
+    while(current != 0)
+    {
+        void* adjacent = find_free_adjacent(current); 
+        if(adjacent == 0)
+        {
+            return;
+        }
+        current = merge_two_blocks(current, adjacent); 
+    }   
+}
+
 void free(void *ptr)
 {
     for (uint64_t i = 0; i < global_kmalloc.num_block; ++i)
@@ -119,6 +219,7 @@ void free(void *ptr)
         if (global_kmalloc.blocks[i].ptr == ptr)
         {
             global_kmalloc.blocks[i].used = false;
+            merge_free_blocks(global_kmalloc.blocks[i].ptr);
             return;
         }
     }

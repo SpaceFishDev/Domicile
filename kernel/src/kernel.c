@@ -32,7 +32,6 @@ void _start(boot_info_t *boot_info_ptr)
             float g = (float)y / (float)background->bounds.h;
             g *= 255.0f;
             uint8_t g8 = (uint8_t)g;
-
             texture_put_pixel(background, VEC2(x, y), COLOR(r8, g8, 150, 255));
         }
     }
